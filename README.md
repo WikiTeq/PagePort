@@ -26,26 +26,26 @@ The extension provides a maintenance script to export and import wiki pages in a
 
 ```bash
 # Export page from "Test" category, save to ~/export/ folder
-php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/
+php maintenance/exportPages.php --category Test --out ~/export/
 
 # Export page listen in pages.txt, save to ~/export/ folder
-php extensions/PagePort/maintenance/exportPages.php --pagelist pages.txt --out ~/export/
+php maintenance/exportPages.php --pagelist pages.txt --out ~/export/
 
 # Export all the pages, save to ~/export/ folder
-php extensions/PagePort/maintenance/exportPages.php --full Test --out ~/export/
+php maintenance/exportPages.php --full Test --out ~/export/
 
 # Export all the pages, save to ~/export/ folder, zip it and save the archive to ~/full.zip
-php extensions/PagePort/maintenance/exportPages.php --full Test --out ~/export/ --zip ~/full.zip
+php maintenance/exportPages.php --full Test --out ~/export/ --zip ~/full.zip
 ```
 
 # Importing page
 
 ```bash
 # Import pages from ~/export/ directory
-php extensions/PagePort/maintenance/importPages.php --source ~/export/
+php maintenance/importPages.php --source ~/export/
 
 # Import pages from ~/export/ directory, make edits on behalf of the Admin user
-php extensions/PagePort/maintenance/importPages.php --source ~/export/ --user Admin
+php maintenance/importPages.php --source ~/export/ --user Admin
 ```
 
 # PageExchange format
@@ -55,10 +55,10 @@ PageExchange extension: https://www.mediawiki.org/wiki/Extension:Page_Exchange
 
 ```bash
 # Export pages from "Test" category, save to ~/export/test.json file
-php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json
+php maintenance/exportPages.php --category Test --out ~/export/test.json --json
 
 # Rewrite pages URLs to point them to a GitHub repository at "someone/Repo":
-php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json --github "someone/Repo"
+php maintenance/exportPages.php --category Test --out ~/export/test.json --json --github "someone/Repo"
 
 # You can also omit the filename, in that case filename will be generated based on time():
 php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/ --json
