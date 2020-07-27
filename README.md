@@ -17,12 +17,12 @@ The extension provides a maintenance script to export and import wiki pages in a
 ...
 ```
 
-Requirements:
+# Requirements:
 
 * MediaWiki 1.30+
 * php-zip extension (optional)
 
-Exporting pages
+# Exporting pages
 
 ```
 # Export page from "Test" category, save to ~/export/ folder
@@ -35,13 +35,30 @@ php extensions/PagePort/maintenance/exportPages.php --full Test --out ~/export/
 php extensions/PagePort/maintenance/exportPages.php --full Test --out ~/export/ --zip ~/full.zip
 ```
 
-Importing page
+# Importing page
 
 ```
 # Import pages from ~/export/ directory
 php extensions/PagePort/maintenance/importPages.php --source ~/export/
 # Import pages from ~/export/ directory, make edits on behalf of the Admin user
 php extensions/PagePort/maintenance/importPages.php --source ~/export/ --user Admin
+```
+
+# PageExchange format
+
+It's possible to export JSON instead of set of files, the generated json is compatible with the
+PageExchange extension: https://www.mediawiki.org/wiki/Extension:Page_Exchange
+
+```
+# Export pages from "Test" category, save to ~/export/test.json file
+php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json
+# Rewrite pages URLs to point them to a GitHub repository at "someone/Repo":
+php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json --github "someone/Repo"
+# You can also omit the filename, in that case filename will be generated based on time():
+php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/ --json
+# It's also possible to specify package details:
+php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json /
+    / --version 1.0 --package "MyPackage" --desc "My description"
 ```
 
 See `php extensions/PagePort/maintenance/importPages.php --help` for details

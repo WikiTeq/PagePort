@@ -12,11 +12,20 @@ class PagePortExportMaintenance extends Maintenance {
 		parent::__construct();
 
 		$this->addDescription( 'This script exports selected pages into a git-ready structure' );
-		$this->addOption( 'out', 'path to save exported pages', true, true, 'o' );
+		$this->addOption( 'out', 'directory to save exported pages or json filename if exporting JSON', true, true, 'o' );
 		$this->addOption( 'category', 'category to be exported', false, true, 'c' );
-		$this->addOption( 'pagelist', 'file with pages to be exported', false, true, 'p' );
+		$this->addOption( 'pagelist', 'file with pages to be exported', false, true, 'l' );
 		$this->addOption( 'zip', 'archive name to compress resulting files', false, true, 'z' );
-		$this->addOption( 'full', 'export the whole wiki', false, false, 'f');
+		$this->addOption( 'full', 'export the whole wiki', false, false, 'f' );
+
+		$this->addOption( 'json', 'export as JSON compatible with PageExchange', false, false, 'j' );
+		$this->addOption( 'package', 'package name (JSON only)', false, false, 'p' );
+		$this->addOption( 'desc', 'package description (JSON only)', false, false, 'd' );
+		$this->addOption( 'github', 'github repository name to use in JSON export urls', false, true, 'g' );
+		$this->addOption( 'version', 'JSON package version', false, true, 'v' );
+		$this->addOption( 'author', 'JSON package author', false, true, 'a' );
+		$this->addOption( 'publisher', 'JSON package publisher', false, true, 'u' );
+
 		$this->requireExtension( 'PagePort' );
 		if ( $args ) {
 			$this->loadWithArgv( $args );
@@ -25,7 +34,9 @@ class PagePortExportMaintenance extends Maintenance {
 
 	public function execute() {
 
-		if ( !is_dir( $this->getOption( 'out' ) ) || !is_writable( $this->getOption( 'out' ) ) ) {
+		$json = $this->getOption( 'json' );
+
+		if ( (!$json && !is_dir( $this->getOption( 'out' ) ) ) || !is_writable( dirname( $this->getOption( 'out' ) ) ) ) {
 			$this->fatalError( 'Output directory does not exist or you have no write permissions' );
 		}
 
@@ -43,6 +54,13 @@ class PagePortExportMaintenance extends Maintenance {
 		$pagelist = $this->getOption( 'pagelist' );
 		$zipfile = $this->getOption('zip');
 		$full = $this->getOption('full');
+		$package = $this->getOption('package', null);
+		$desc = $this->getOption('desc');
+		$github = $this->getOption('github');
+		$version = $this->getOption('version');
+		$author = $this->getOption('author');
+		$publisher = $this->getOption('publisher');
+
 		if( $category ) {
 			if ( !in_array( str_replace( ' ', '_', $this->getOption( 'category' ) ),
 				PagePort::getInstance()->getAllCategories() )
@@ -65,7 +83,13 @@ class PagePortExportMaintenance extends Maintenance {
 			$this->fatalError( 'There is nothing to export!' );
 		}
 		try {
-			PagePort::getInstance()->export( $pages, $root );
+			if( $json ) {
+				PagePort::getInstance()->exportJSON(
+					$pages, $root, $package, $desc, $github, $version, $author, $publisher
+				);
+			}else {
+				PagePort::getInstance()->export( $pages, $root );
+			}
 			if ( $zipfile ) {
 				$zip = new ZipArchive();
 				$filename = $root . '/' . $zipfile;

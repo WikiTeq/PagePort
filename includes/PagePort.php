@@ -5,6 +5,7 @@ use MediaWiki\MediaWikiServices;
 class PagePort {
 
 	public static $instance;
+	private static $constantsCache = [];
 
 	public static function getInstance() {
 		if ( self::$instance === null ) {
@@ -78,6 +79,20 @@ class PagePort {
 		return $pages;
 	}
 
+	private function getNamespaceName( $namespace ) {
+		$namespaceName = 'Main';
+		if ( $namespace !== NS_MAIN ) {
+			if ( class_exists( 'LanguageConverterFactory' ) ) {
+				$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()
+					->convertNamespace( $namespace );
+			} else {
+				global $wgContLang;
+				$namespaceName = $wgContLang->convertNamespace( $namespace );
+			}
+		}
+		return $namespaceName;
+	}
+
 	/**
 	 * @param string[] $pages Pages to export
 	 * @param string $root output directory path
@@ -94,18 +109,9 @@ class PagePort {
 			$title = Title::newFromText( $page );
 			$filename = $title->getText();
 			$namespace = $title->getNamespace();
-			$namespaceName = 'Main';
-			if ( $namespace !== NS_MAIN ) {
-				if( class_exists('LanguageConverterFactory') ) {
-					$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()
-						->convertNamespace( $namespace );
-				}else{
-					global $wgContLang;
-					$namespaceName = $wgContLang->convertNamespace( $namespace );
-				}
-				if ( !$namespaceName || $namespaceName == '' ) {
-					continue;
-				}
+			$namespaceName = $this->getNamespaceName( $namespace );
+			if ( !$namespaceName || $namespaceName == '' ) {
+				continue;
 			}
 			// TODO: better sanitizing!
 			if ( strpos( $namespaceName, '/' ) !== false ) {
@@ -122,6 +128,87 @@ class PagePort {
 							   '.mediawiki', $content );
 		}
 		return true;
+	}
+
+	/**
+	 * @param string[] $pages Pages to export
+	 * @param string $root Output directory
+	 * @param null $packageName Package name
+	 * @param string $packageDesc Package desc
+	 *
+	 * @param null $repo GitHub repository name to substitute wiki URLs
+	 *
+	 * @return string
+	 */
+	public function exportJSON(
+		$pages,
+		$root,
+		$packageName = null,
+		$packageDesc = '',
+		$repo = null,
+		$version = null,
+		$author = null,
+		$publisher = null
+	) {
+		global $wgLanguageCode;
+		if( $packageName === null ) {
+			$packageName = time();
+		}
+		$filename = $root . '/' . $packageName . '.json';
+		if( strpos( $root, '.json') !== false ) {
+			$filename = $root;
+		}
+		$json = [
+			'publisher' => $publisher ? $publisher : 'PagePort',
+			'author' => $author ? $author : 'PagePort',
+			'language' => $wgLanguageCode,
+			"url" => "https://github.com/WikiWorks/Page-Exchange-packages",
+			"packages" => [
+				$packageName => [
+					"globalID" => $packageName,
+					"description" => $packageDesc,
+					"version" => $version ? $version : '0.1',
+					"pages" => [],
+					"requiredExtensions" => []
+				]
+			]
+		];
+		$jsonPages = [];
+		foreach ( $pages as $page ) {
+			$title = Title::newFromText( $page );
+			$name = $title->getBaseText();
+			if ( strpos( $filename, '/' ) !== false ) {
+				$name = str_replace( '/', '|', $name );
+			}
+			$item = [
+				"name" => $name,
+				"namespace" => $this->getNamespaceByValue( $title->getNamespace() ),
+				"url" => $title->getFullURL('action=raw')
+			];
+			if ( $repo !== null ) {
+				$item['url'] = wfUrlencode(
+					"https://raw.githubusercontent.com/{$repo}/master/" .
+					"{$this->getNamespaceName( $title->getNamespace() )}" .
+					"/" . "{$name}.mediawiki" );
+			}
+			$jsonPages[] = $item;
+		}
+		$json['packages'][$packageName]['pages'] = $jsonPages;
+		file_put_contents( $filename, json_encode( $json, JSON_PRETTY_PRINT ) );
+		return true;
+	}
+
+	private function getNamespaceByValue( $value ) {
+		if( isset( self::$constantsCache[$value] ) ) {
+			return self::$constantsCache[$value];
+		}
+		$defines = get_defined_constants(true);
+		$constants = array_filter( $defines['user'], function ( $k ) {
+			return strpos( $k, 'NS_' ) !== false;
+		}, ARRAY_FILTER_USE_KEY );
+		$constants = array_flip( $constants );
+		self::$constantsCache = $constants;
+		return isset( $constants[$value] ) ? $constants[$value] : null;
 	}
 
 	// most of the code below is imported from PageForms
