@@ -36,7 +36,8 @@ The extension provides a maintenance script to export and import wiki pages in a
                     "name": "Page1",
                     "namespace": "NS_MAIN",
                     "url": "https://raw.githubusercontent.com/Test/test/master/Main/Test"
-                }
+                },
+                ...
             ]
         }
     }
