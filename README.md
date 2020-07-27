@@ -61,11 +61,11 @@ php maintenance/exportPages.php --category Test --out ~/export/test.json --json
 php maintenance/exportPages.php --category Test --out ~/export/test.json --json --github "someone/Repo"
 
 # You can also omit the filename, in that case filename will be generated based on time():
-php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/ --json
+php maintenance/exportPages.php --category Test --out ~/export/ --json
 
 # It's also possible to specify package details:
-php extensions/PagePort/maintenance/exportPages.php --category Test --out ~/export/test.json --json /
+php maintenance/exportPages.php --category Test --out ~/export/test.json --json /
     / --version 1.0 --package "MyPackage" --desc "My description"
 ```
 
-See `php extensions/PagePort/maintenance/importPages.php --help` for details
+See `php maintenance/importPages.php --help` for details
