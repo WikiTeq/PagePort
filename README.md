@@ -1,7 +1,7 @@
 PagePort
 ----------
 
-The extension provides a maintenance script to export and import wiki pages in a git-book format:
+The extension provides a maintenance script to export and import wiki pages in a git-book format and JSON format:
 
 ```
 /
