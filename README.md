@@ -26,18 +26,19 @@ The extension provides a maintenance script to export and import wiki pages in a
 	"language": "en",
 	"url": "https://github.com/Test/test",
 	"packages": {
-		"Books demo (SMW)": {
-			"globalID": "com.test.test",
-			"publisherURL": "https://test.com",
-			"description": "Lorem",
-			"version": "0.1",
-			"pages": [
-				{
-					"name": "Page1",
-					"namespace": "NS_MAIN",
-					"url": "https://raw.githubusercontent.com/Test/test/master/Main/Test"
-				},
-    ...
+        "Books demo (SMW)": {
+            "globalID": "com.test.test",
+            "publisherURL": "https://test.com",
+            "description": "Lorem",
+            "version": "0.1",
+            "pages": [
+                {
+                    "name": "Page1",
+                    "namespace": "NS_MAIN",
+                    "url": "https://raw.githubusercontent.com/Test/test/master/Main/Test"
+                }
+        }
+    }
 }
 ```
 
