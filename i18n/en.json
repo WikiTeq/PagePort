@@ -1,0 +1,6 @@
+{
+	"@metadata": {
+		"authors": [ "WikiWorks team" ]
+	},
+	"pageport-desc": "Exports and imports wiki pages using a git-book format"
+}
