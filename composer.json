@@ -1,6 +1,7 @@
 {
 	"require": {
-		"ext-zip": "*"
+		"ext-zip": "*",
+		"estahn/phpunit-json-assertions": "^3.0"
 	},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "1.0.0",

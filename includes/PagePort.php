@@ -7,6 +7,9 @@ class PagePort {
 	public static $instance;
 	private static $constantsCache = [];
 
+	/**
+	 * @return PagePort
+	 */
 	public static function getInstance() {
 		if ( self::$instance === null ) {
 			self::$instance = new self();
@@ -14,6 +17,13 @@ class PagePort {
 		return self::$instance;
 	}
 
+	/**
+	 * @param string $root
+	 * @param User|null $user
+	 *
+	 * @return array
+	 * @throws MWException
+	 */
 	public function import( $root, $user = null ) {
 		if ( !is_dir( $root ) ) {
 			throw new Exception( 'Source directory does not exist or you have no read permissions' );
@@ -35,7 +45,7 @@ class PagePort {
 			if ( strpos( $namespace, '|' ) !== false ) {
 				$namespace = str_replace( '|', '/', $namespace );
 			}
-			$name = str_replace('.mediawiki', '', $parts[1] );
+			$name = str_replace( '.mediawiki', '', $parts[1] );
 			if ( strpos( $name, '|' ) !== false ) {
 				$name = str_replace( '|', '/', $name );
 			}
@@ -47,6 +57,11 @@ class PagePort {
 		return $pages;
 	}
 
+	/**
+	 * @param string $dir
+	 *
+	 * @return array
+	 */
 	private function getPagesFromDir( $dir ) {
 		$pages = [];
 		$list = scandir( $dir );
@@ -61,17 +76,21 @@ class PagePort {
 		return $pages;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getAllPages() {
 		$pages = [];
 		$dbr = wfGetDB( DB_REPLICA );
-		$res = $dbr->select(
-			'page',
-			['page_title', 'page_namespace']
-		);
+		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
 		if ( $res ) {
+			// @codingStandardsIgnoreStart
 			while ( $res && $row = $dbr->fetchRow( $res ) ) {
+				// @codingStandardsIgnoreEnd
 				$cur_title = Title::makeTitleSafe( $row['page_namespace'], $row['page_title'] );
-				if ( $cur_title === null ) { continue; }
+				if ( $cur_title === null ) {
+					continue;
+				}
 				$cur_value = $this->titleString( $cur_title );
 				$pages[] = $cur_value;
 			}
@@ -79,32 +98,52 @@ class PagePort {
 		return $pages;
 	}
 
-	private function getNamespaceName( $namespace ) {
-		$namespaceName = 'Main';
-		if ( $namespace !== NS_MAIN ) {
-			if ( class_exists( 'LanguageConverterFactory' ) ) {
-				$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()
-					->convertNamespace( $namespace );
-			} else {
-				global $wgContLang;
-				$namespaceName = $wgContLang->convertNamespace( $namespace );
-			}
+	/**
+	 * A very similar function to titleURLString(), to get the
+	 * non-URL-encoded title string
+	 *
+	 * @param Title $title
+	 *
+	 * @return string
+	 */
+	private function titleString( $title ) {
+		$namespace = $title->getNsText();
+		if ( $namespace !== '' ) {
+			$namespace .= ':';
 		}
-		return $namespaceName;
+		if ( MWNamespace::isCapitalized( $title->getNamespace() ) ) {
+			return $namespace . $this->getContLang()->ucfirst( $title->getText() );
+		} else {
+			return $namespace . $title->getText();
+		}
+	}
+
+	/**
+	 * @return Language
+	 */
+	private function getContLang() {
+		if ( method_exists( "MediaWiki\\MediaWikiServices", "getContentLanguage" ) ) {
+			return MediaWikiServices::getInstance()->getContentLanguage();
+		} else {
+			global $wgContLang;
+			return $wgContLang;
+		}
 	}
 
 	/**
 	 * @param string[] $pages Pages to export
 	 * @param string $root output directory path
 	 *
-	 * @return bool
+	 * @param bool $save save to file
+	 *
+	 * @return array|bool
 	 * @throws MWException
-	 * @throws Exception
 	 */
-	public function export( $pages, $root ) {
-		if ( !is_dir( $root ) || !is_writable( $root ) ) {
+	public function export( $pages, $root, $save = true ) {
+		if ( $save && ( !is_dir( $root ) || !is_writable( $root ) ) ) {
 			throw new Exception( 'Output directory does not exist or you have no write permissions' );
 		}
+		$contents = [];
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$filename = $title->getText();
@@ -118,27 +157,60 @@ class PagePort {
 				$namespaceName = str_replace( '/', '|', $namespaceName );
 			}
 			$content = WikiPage::factory( $title )->getContent()->getWikitextForTransclusion();
-			if ( !file_exists( $root . '/' . $namespaceName ) ) {
+			if ( $save && !file_exists( $root . '/' . $namespaceName ) ) {
 				mkdir( $root . '/' . $namespaceName );
 			}
 			if ( strpos( $filename, '/' ) !== false ) {
 				$filename = str_replace( '/', '|', $filename );
 			}
-			file_put_contents( $root . '/' . $namespaceName . '/' . $filename .
-							   '.mediawiki', $content );
+			$targetFileName = $root . '/' . $namespaceName . '/' . $filename . '.mediawiki';
+			if ( $save ) {
+				file_put_contents( $targetFileName, $content );
+			} else {
+				$contents[$targetFileName] = $content;
+			}
+		}
+		if ( !$save ) {
+			return $contents;
 		}
 		return true;
 	}
 
 	/**
-	 * @param string[] $pages Pages to export
-	 * @param string $root Output directory
-	 * @param null $packageName Package name
-	 * @param string $packageDesc Package desc
-	 *
-	 * @param null $repo GitHub repository name to substitute wiki URLs
+	 * @param int $namespace
 	 *
 	 * @return string
+	 */
+	public function getNamespaceName( $namespace ) {
+		$namespaceName = 'Main';
+		if ( $namespace !== NS_MAIN ) {
+			if ( class_exists( 'LanguageConverterFactory' ) ) {
+				$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()->convertNamespace( $namespace );
+			} else {
+				global $wgContLang;
+				$namespaceName = $wgContLang->convertNamespace( $namespace );
+			}
+		}
+		return $namespaceName;
+	}
+
+	// most of the code below is imported from PageForms
+
+	/**
+	 * @param string[] $pages Pages to export
+	 * @param string $root Output directory
+	 * @param null|string $packageName Package name
+	 * @param string $packageDesc Package desc
+	 *
+	 * @param null|string $repo GitHub repository name to substitute wiki URLs
+	 *
+	 * @param null|string $version
+	 * @param null|string $author
+	 * @param null|string $publisher
+	 *
+	 * @param bool $save to save resulting JSON
+	 *
+	 * @return string|array
 	 */
 	public function exportJSON(
 		$pages,
@@ -148,14 +220,15 @@ class PagePort {
 		$repo = null,
 		$version = null,
 		$author = null,
-		$publisher = null
+		$publisher = null,
+		$save = true
 	) {
 		global $wgLanguageCode;
-		if( $packageName === null ) {
+		if ( $packageName === null ) {
 			$packageName = time();
 		}
 		$filename = $root . '/' . $packageName . '.json';
-		if( strpos( $root, '.json') !== false ) {
+		if ( strpos( $root, '.json' ) !== false ) {
 			$filename = $root;
 		}
 		$json = [
@@ -183,35 +256,45 @@ class PagePort {
 			$item = [
 				"name" => $name,
 				"namespace" => $this->getNamespaceByValue( $title->getNamespace() ),
-				"url" => $title->getFullURL('action=raw')
+				"url" => $title->getFullURL( 'action=raw' )
 			];
 			if ( $repo !== null ) {
 				$item['url'] = wfUrlencode(
 					"https://raw.githubusercontent.com/{$repo}/master/" .
-					"{$this->getNamespaceName( $title->getNamespace() )}" .
-					"/" . "{$name}.mediawiki" );
+					"{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$name}.mediawiki"
+				);
 			}
 			$jsonPages[] = $item;
 		}
 		$json['packages'][$packageName]['pages'] = $jsonPages;
+		if ( !$save ) {
+			return [ $filename, json_encode( $json, JSON_PRETTY_PRINT ) ];
+		}
 		file_put_contents( $filename, json_encode( $json, JSON_PRETTY_PRINT ) );
 		return true;
 	}
 
-	private function getNamespaceByValue( $value ) {
-		if( isset( self::$constantsCache[$value] ) ) {
+	/**
+	 * @param string $value
+	 *
+	 * @return array|mixed|null
+	 */
+	public function getNamespaceByValue( $value ) {
+		if ( isset( self::$constantsCache[$value] ) ) {
 			return self::$constantsCache[$value];
 		}
-		$defines = get_defined_constants(true);
-		$constants = array_filter( $defines['user'], function ( $k ) {
-			return strpos( $k, 'NS_' ) !== false;
-		}, ARRAY_FILTER_USE_KEY );
+		$defines = get_defined_constants( true );
+		$constants = array_filter(
+			$defines['user'],
+			function ( $k ) {
+				return strpos( $k, 'NS_' ) !== false;
+			},
+			ARRAY_FILTER_USE_KEY
+		);
 		$constants = array_flip( $constants );
 		self::$constantsCache = $constants;
 		return isset( $constants[$value] ) ? $constants[$value] : null;
 	}
-
-	// most of the code below is imported from PageForms
 
 	/**
 	 * Helper function - returns names of all the categories.
@@ -222,7 +305,9 @@ class PagePort {
 		$db = wfGetDB( DB_REPLICA );
 		$res = $db->select( 'category', 'cat_title', null, __METHOD__ );
 		if ( $db->numRows( $res ) > 0 ) {
+			// @codingStandardsIgnoreStart
 			while ( $row = $db->fetchRow( $res ) ) {
+				// @codingStandardsIgnoreEnd
 				$categories[] = $row['cat_title'];
 			}
 		}
@@ -239,7 +324,7 @@ class PagePort {
 	 * @param int $num_levels
 	 * @param string|null $substring
 	 *
-	 * @return string
+	 * @return string[]|string
 	 */
 	public function getAllPagesForCategory( $top_category, $num_levels, $substring = null ) {
 		if ( 0 == $num_levels ) {
@@ -253,7 +338,7 @@ class PagePort {
 		$checkcategories = [ $top_category ];
 		$pages = [];
 		$sortkeys = [];
-		for ( $level = $num_levels; $level > 0; $level -- ) {
+		for ( $level = $num_levels; $level > 0; $level-- ) {
 			$newcategories = [];
 			foreach ( $checkcategories as $category ) {
 				$tables = [ 'categorylinks', 'page' ];
@@ -283,26 +368,39 @@ class PagePort {
 						]
 					];
 					if ( $substring != null ) {
-						$conditions[] = '(pp_displaytitle.pp_value IS NULL AND (' .
-										$this->getSQLConditionForAutocompleteInColumn( 'page_title', $substring ) .
-										')) OR ' .
-										$this->getSQLConditionForAutocompleteInColumn( 'pp_displaytitle.pp_value', $substring ) .
-										' OR page_namespace = ' . NS_CATEGORY;
+						$conditions[] =
+							'(pp_displaytitle.pp_value IS NULL AND (' . $this->getSQLConditionForAutocompleteInColumn(
+								'page_title',
+								$substring
+							) . ')) OR ' . $this->getSQLConditionForAutocompleteInColumn(
+								'pp_displaytitle.pp_value',
+								$substring
+							) . ' OR page_namespace = ' . NS_CATEGORY;
 					}
 				} else {
 					$join = [];
 					if ( $substring != null ) {
-						$conditions[] = $this->getSQLConditionForAutocompleteInColumn( 'page_title', $substring ) .
-										' OR page_namespace = ' . NS_CATEGORY;
+						$conditions[] = $this->getSQLConditionForAutocompleteInColumn(
+								'page_title',
+								$substring
+							) . ' OR page_namespace = ' . NS_CATEGORY;
 					}
 				}
-				$res = $db->select( // make the query
-					$tables, $columns, $conditions, __METHOD__, $options = [
-					'ORDER BY' => 'cl_type, cl_sortkey',
-					'LIMIT' => $wgPageFormsMaxAutocompleteValues
-				], $join );
+				$res = $db->select(
+					$tables,
+					$columns,
+					$conditions,
+					__METHOD__,
+					$options = [
+						'ORDER BY' => 'cl_type, cl_sortkey',
+						'LIMIT' => $wgPageFormsMaxAutocompleteValues
+					],
+					$join
+				);
 				if ( $res ) {
+					// @codingStandardsIgnoreStart
 					while ( $res && $row = $db->fetchRow( $res ) ) {
+						// @codingStandardsIgnoreEnd
 						if ( !array_key_exists( 'page_title', $row ) ) {
 							continue;
 						}
@@ -322,12 +420,12 @@ class PagePort {
 							}
 							$cur_value = $this->titleString( $cur_title );
 							if ( !in_array( $cur_value, $pages ) ) {
-								if ( array_key_exists( 'pp_displaytitle_value', $row ) &&
-									 ( $row['pp_displaytitle_value'] ) !== null &&
-									 trim( str_replace( '&#160;', '', strip_tags( $row['pp_displaytitle_value'] ) ) ) !==
-									 '' ) {
-									$pages[$cur_value .
-										   '@'] = htmlspecialchars_decode( $row['pp_displaytitle_value'] );
+								if ( array_key_exists( 'pp_displaytitle_value', $row )
+									 && ( $row['pp_displaytitle_value'] ) !== null
+									 && trim( str_replace( '&#160;', '',
+										strip_tags( $row['pp_displaytitle_value'] ) ) ) !== ''
+								) {
+									$pages[$cur_value . '@'] = htmlspecialchars_decode( $row['pp_displaytitle_value'] );
 								} else {
 									$pages[$cur_value . '@'] = $cur_value;
 								}
@@ -384,9 +482,12 @@ class PagePort {
 			return $column_value . $db->buildLike( $db->anyString(), $substring, $db->anyString() );
 		} else {
 			$spaceRepresentation = $replaceSpaces ? '_' : ' ';
-			return $column_value . $db->buildLike( $substring, $db->anyString() ) . ' OR ' .
-				   $column_value . $db->buildLike( $db->anyString(), $spaceRepresentation .
-																	 $substring, $db->anyString() );
+			return $column_value . $db->buildLike( $substring, $db->anyString() ) . ' OR ' . $column_value .
+				   $db->buildLike(
+					   $db->anyString(),
+					   $spaceRepresentation . $substring,
+					   $db->anyString()
+				   );
 		}
 	}
 
@@ -411,35 +512,6 @@ class PagePort {
 			$newPages[$fixedKey] = $value;
 		}
 		return $newPages;
-	}
-
-	/**
-	 * A very similar function to titleURLString(), to get the
-	 * non-URL-encoded title string
-	 *
-	 * @param Title $title
-	 *
-	 * @return string
-	 */
-	private function titleString( $title ) {
-		$namespace = $title->getNsText();
-		if ( $namespace !== '' ) {
-			$namespace .= ':';
-		}
-		if ( MWNamespace::isCapitalized( $title->getNamespace() ) ) {
-			return $namespace . $this->getContLang()->ucfirst( $title->getText() );
-		} else {
-			return $namespace . $title->getText();
-		}
-	}
-
-	private function getContLang() {
-		if ( method_exists( "MediaWiki\\MediaWikiServices", "getContentLanguage" ) ) {
-			return MediaWikiServices::getInstance()->getContentLanguage();
-		} else {
-			global $wgContLang;
-			return $wgContLang;
-		}
 	}
 
 }

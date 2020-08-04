@@ -19,7 +19,9 @@
 	"ExtensionMessagesFiles": {
 		"PagePortAlias": "PagePort.i18n.alias.php"
 	},
-	"Hooks": {},
+	"Hooks": {
+		"UnitTestsList": "PagePortHooks::onUnitTestsList"
+	},
 	"MessagesDirs": {
 		"PagePort": [
 			"i18n"
