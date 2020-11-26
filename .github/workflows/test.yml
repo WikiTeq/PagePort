@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v2
+
     - name: Setup MediaWiki Action
       uses: ProfessionalWiki/setup-mediawiki@0.1
       with:
         version: REL1_35
         extension: PagePort
-          
-    - uses: actions/checkout@v2
 
     - name: Validate composer.json and composer.lock
       run: composer validate
