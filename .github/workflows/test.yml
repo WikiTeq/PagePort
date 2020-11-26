@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Setup MediaWiki Action
-        uses: ProfessionalWiki/setup-mediawiki@0.1
+        uses: ProfessionalWiki/setup-mediawiki
         with:
           version: REL1_35
           extension: PagePort
