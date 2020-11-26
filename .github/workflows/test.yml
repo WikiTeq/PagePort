@@ -12,8 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup MediaWiki Action
-        uses: ProfessionalWiki/setup-mediawiki
+      - uses: ProfessionalWiki/setup-mediawiki
         with:
           version: REL1_35
           extension: PagePort
