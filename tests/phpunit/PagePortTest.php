@@ -97,6 +97,8 @@ class PagePortTest extends MediaWikiTestCase {
 				"testVersion",
 				"testAuthor",
 				"testPublisher",
+				[ "testpackage1", "testpackage2" ],
+				[ "testextension1", "testextension2" ],
 				false
 			);
 		$this->assertCount( 2, $result, 'with $save=false an array of two items is returned' );

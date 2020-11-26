@@ -33,6 +33,9 @@ class PagePortExportMaintenance extends Maintenance {
 		$this->addOption( 'version', 'JSON package version', false, true, 'v' );
 		$this->addOption( 'author', 'JSON package author', false, true, 'a' );
 		$this->addOption( 'publisher', 'JSON package publisher', false, true, 'u' );
+
+		$this->addOption( 'dependencies', 'List of dependencies (packages) to include (separated by comma)', false, true, 'd' );
+		$this->addOption( 'extensions', 'List of dependencies (extensions) to include (separated by comma)', false, true, 'd' );
 		// @codingStandardsIgnoreEnd
 
 		$this->requireExtension( 'PagePort' );
@@ -77,6 +80,8 @@ class PagePortExportMaintenance extends Maintenance {
 		$version = $this->getOption( 'version' );
 		$author = $this->getOption( 'author' );
 		$publisher = $this->getOption( 'publisher' );
+		$dependencies = $this->getOption( 'dependencies' );
+		$extensions = $this->getOption( 'extensions' );
 
 		if ( $category ) {
 			if ( !in_array(
@@ -101,11 +106,27 @@ class PagePortExportMaintenance extends Maintenance {
 		if ( !count( $pages ) ) {
 			$this->fatalError( 'There is nothing to export!' );
 		}
+		if ( $dependencies ) {
+			$dependencies = explode( ',', $dependencies );
+		}
+		if ( $extensions ) {
+			$extensions = explode( ',', $extensions );
+		}
 		try {
 			if ( $json ) {
 				PagePort::getInstance()
 					->exportJSON(
-						$pages, $root, $package, $desc, $github, $version, $author, $publisher );
+						$pages,
+						$root,
+						$package,
+						$desc,
+						$github,
+						$version,
+						$author,
+						$publisher,
+						$dependencies,
+						$extensions
+					);
 			} else {
 				PagePort::getInstance()->export( $pages, $root );
 			}

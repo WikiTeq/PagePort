@@ -204,9 +204,11 @@ class PagePort {
 	 *
 	 * @param null|string $repo GitHub repository name to substitute wiki URLs
 	 *
-	 * @param null|string $version
-	 * @param null|string $author
-	 * @param null|string $publisher
+	 * @param null|string $version Version
+	 * @param null|string $author Author
+	 * @param null|string $publisher Publisher
+	 * @param null|string[] $dependencies Array of dependencies (packages)
+	 * @param null|string[] $extensions Array of dependencies (extensions)
 	 *
 	 * @param bool $save to save resulting JSON
 	 *
@@ -221,6 +223,8 @@ class PagePort {
 		$version = null,
 		$author = null,
 		$publisher = null,
+		$dependencies = null,
+		$extensions = null,
 		$save = true
 	) {
 		global $wgLanguageCode;
@@ -267,6 +271,16 @@ class PagePort {
 			$jsonPages[] = $item;
 		}
 		$json['packages'][$packageName]['pages'] = $jsonPages;
+		if ( $dependencies !== null && is_array( $dependencies ) ) {
+			foreach ( $dependencies as $dependency ) {
+				$json['packages'][$packageName]['requiredPackages'][] = $dependency;
+			}
+		}
+		if ( $extensions !== null && is_array( $extensions ) ) {
+			foreach ( $extensions as $extension ) {
+				$json['packages'][$packageName]['requiredExtensions'][] = $extension;
+			}
+		}
 		if ( !$save ) {
 			return [ $filename, json_encode( $json, JSON_PRETTY_PRINT ) ];
 		}
