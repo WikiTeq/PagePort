@@ -67,6 +67,10 @@ class PagePort {
 		$list = scandir( $dir );
 		foreach ( $list as $l ) {
 			if ( !is_dir( $dir . '/' . $l ) ) {
+				// Skip hidden dirs, like .git
+				if( strpos( basename( $dir ) . '/' . $l, '.' ) === 0 ) {
+					continue;
+				}
 				$pages[] = [
 					'name' => basename( $dir ) . ':' . $l,
 					'content' => file_get_contents( $dir . '/' . $l )
