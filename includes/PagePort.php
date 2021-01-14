@@ -257,9 +257,13 @@ class PagePort {
 			if ( strpos( $filename, '/' ) !== false ) {
 				$name = str_replace( '/', '|', $name );
 			}
+			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
+			if( $namespace === "NS_IMAGE" ) {
+				$namespace = "NS_FILE";
+			}
 			$item = [
 				"name" => $name,
-				"namespace" => $this->getNamespaceByValue( $title->getNamespace() ),
+				"namespace" => $namespace,
 				"url" => $title->getFullURL( 'action=raw' )
 			];
 			if ( $repo !== null ) {
