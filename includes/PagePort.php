@@ -242,7 +242,7 @@ class PagePort {
 			"url" => "https://github.com/WikiWorks/Page-Exchange-packages",
 			"packages" => [
 				$packageName => [
-					"globalID" => $packageName,
+					"globalID" => str_replace(' ', '.', $packageName),
 					"description" => $packageDesc,
 					"version" => $version ? $version : '0.1',
 					"pages" => [],
@@ -253,7 +253,7 @@ class PagePort {
 		$jsonPages = [];
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
-			$name = $title->getBaseText();
+			$name = $title->getText();
 			if ( strpos( $filename, '/' ) !== false ) {
 				$name = str_replace( '/', '|', $name );
 			}
