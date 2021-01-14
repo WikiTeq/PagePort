@@ -263,10 +263,9 @@ class PagePort {
 				"url" => $title->getFullURL( 'action=raw' )
 			];
 			if ( $repo !== null ) {
-				$item['url'] = wfUrlencode(
+				$item['url'] =
 					"https://raw.githubusercontent.com/{$repo}/master/" .
-					"{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$name}.mediawiki"
-				);
+					rawurlencode ( "{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$name}.mediawiki" );
 			}
 			$jsonPages[] = $item;
 		}
