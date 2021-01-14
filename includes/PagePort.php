@@ -254,9 +254,9 @@ class PagePort {
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$name = $title->getText();
-			if ( strpos( $filename, '/' ) !== false ) {
-				$name = str_replace( '/', '|', $name );
-			}
+//			if ( strpos( $filename, '/' ) !== false ) {
+//				$name = str_replace( '/', '|', $name );
+//			}
 			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
 			if( $namespace === "NS_IMAGE" ) {
 				$namespace = "NS_FILE";
