@@ -88,7 +88,15 @@
 								"requiredExtensions": {
 									"type": "array",
 									"title": "The requiredExtensions schema",
-									"description": "An explanation about the purpose of this instance.",
+									"description": "A list of extensions required",
+									"items": {
+										"type": "string"
+									}
+								},
+								"requiredPackages": {
+									"type": "array",
+									"title": "The requiredPackages schema",
+									"description": "A list of packages required",
 									"items": {
 										"type": "string"
 									}

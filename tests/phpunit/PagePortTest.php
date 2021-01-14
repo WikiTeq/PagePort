@@ -146,9 +146,7 @@ class PagePortTest extends MediaWikiTestCase {
 	 * @covers PagePort::import
 	 */
 	public function testImport() {
-		$tempDir = sys_get_temp_dir();
-		$dir = 'pageport_' . time();
-		mkdir( $tempDir . '/' . $dir );
+		$tempDir = $this->tempdir('pageprot_');
 		$pages = [
 			'Page1Test',
 			'Page2Test',
@@ -157,20 +155,36 @@ class PagePortTest extends MediaWikiTestCase {
 			'Template:Page5Test',
 			'File:Page6Test'
 		];
-		$this->pp->export( $pages, $tempDir . '/' . $dir );
+		$this->pp->export( $pages, $tempDir );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$wp = WikiPage::factory( $title );
 			$wp->doDeleteArticleReal( 'test', $this->getTestUser( 'sysop' )->getUser(), true );
 		}
-		$this->pp->import( $tempDir . '/' . $dir );
+		$this->pp->import( $tempDir );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$this->assertTrue( $title->exists() );
 			$wp = WikiPage::factory( $title );
 			$this->assertTrue( strlen( $wp->getContent()->getWikitextForTransclusion() ) > 0 );
 		}
-		rmdir( $tempDir . '/' . $dir );
+	}
+
+	/**
+	 * Creates temp directory
+	 * @param string $prefix
+	 *
+	 * @return false|string
+	 */
+	private function tempdir( $prefix = 'php' ) {
+		$tempfile = tempnam( '', '' );
+		if ( file_exists( $tempfile ) ) {
+			unlink( $tempfile );
+		}
+		mkdir( $tempfile );
+		if ( is_dir( $tempfile ) ) {
+			return $tempfile;
+		}
 	}
 
 }

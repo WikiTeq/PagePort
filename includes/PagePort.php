@@ -360,46 +360,15 @@ class PagePort {
 				$conditions = [];
 				$conditions[] = 'cl_from = page_id';
 				$conditions['cl_to'] = $category;
-				if ( $wgPageFormsUseDisplayTitle ) {
-					$tables['pp_displaytitle'] = 'page_props';
-					$tables['pp_defaultsort'] = 'page_props';
-					$columns['pp_displaytitle_value'] = 'pp_displaytitle.pp_value';
-					$columns['pp_defaultsort_value'] = 'pp_defaultsort.pp_value';
-					$join = [
-						'pp_displaytitle' => [
-							'LEFT JOIN',
-							[
-								'pp_displaytitle.pp_page = page_id',
-								'pp_displaytitle.pp_propname = \'displaytitle\''
-							]
-						],
-						'pp_defaultsort' => [
-							'LEFT JOIN',
-							[
-								'pp_defaultsort.pp_page = page_id',
-								'pp_defaultsort.pp_propname = \'defaultsort\''
-							]
-						]
-					];
-					if ( $substring != null ) {
-						$conditions[] =
-							'(pp_displaytitle.pp_value IS NULL AND (' . $this->getSQLConditionForAutocompleteInColumn(
-								'page_title',
-								$substring
-							) . ')) OR ' . $this->getSQLConditionForAutocompleteInColumn(
-								'pp_displaytitle.pp_value',
-								$substring
-							) . ' OR page_namespace = ' . NS_CATEGORY;
-					}
-				} else {
-					$join = [];
-					if ( $substring != null ) {
-						$conditions[] = $this->getSQLConditionForAutocompleteInColumn(
-								'page_title',
-								$substring
-							) . ' OR page_namespace = ' . NS_CATEGORY;
-					}
+
+				$join = [];
+				if ( $substring != null ) {
+					$conditions[] = $this->getSQLConditionForAutocompleteInColumn(
+							'page_title',
+							$substring
+						) . ' OR page_namespace = ' . NS_CATEGORY;
 				}
+
 				$res = $db->select(
 					$tables,
 					$columns,
