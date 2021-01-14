@@ -254,9 +254,7 @@ class PagePort {
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$name = $title->getText();
-//			if ( strpos( $filename, '/' ) !== false ) {
-//				$name = str_replace( '/', '|', $name );
-//			}
+			$escapedName = str_replace( '/', '|', $name );
 			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
 			if( $namespace === "NS_IMAGE" ) {
 				$namespace = "NS_FILE";
@@ -269,7 +267,7 @@ class PagePort {
 			if ( $repo !== null ) {
 				$item['url'] =
 					"https://raw.githubusercontent.com/{$repo}/master/" .
-					rawurlencode ( "{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$name}.mediawiki" );
+					rawurlencode ( "{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$escapedName}.mediawiki" );
 			}
 			$jsonPages[] = $item;
 		}
