@@ -27,8 +27,8 @@ class PagePortExportMaintenance extends Maintenance {
 		$this->addOption( 'full', 'export the whole wiki', false, false, 'f' );
 
 		$this->addOption( 'json', 'export as JSON compatible with PageExchange', false, false, 'j' );
-		$this->addOption( 'package', 'package name (JSON only)', false, false, 'p' );
-		$this->addOption( 'desc', 'package description (JSON only)', false, false, 'd' );
+		$this->addOption( 'package', 'package name (JSON only)', false, true, 'p' );
+		$this->addOption( 'desc', 'package description (JSON only)', false, true, 'd' );
 		$this->addOption( 'github', 'github repository name to use in JSON export urls', false, true, 'g' );
 		$this->addOption( 'version', 'JSON package version', false, true, 'v' );
 		$this->addOption( 'author', 'JSON package author', false, true, 'a' );
