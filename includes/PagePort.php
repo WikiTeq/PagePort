@@ -58,6 +58,47 @@ class PagePort {
 	}
 
 	/**
+	 * @param string $root
+	 * @param User|null $user
+	 *
+	 * @return array
+	 * @throws MWException
+	 */
+	public function delete( $root, $user = null ) {
+		if ( !is_dir( $root ) ) {
+			throw new Exception( 'Source directory does not exist or you have no read permissions' );
+		}
+		if ( $user !== null ) {
+			$user = User::newFromName( $user );
+		}
+		$list = scandir( $root );
+		$pages = [];
+		foreach ( $list as $l ) {
+			if ( is_dir( $root . '/' . $l ) && $l != '.' && $l != '..' ) {
+				$pages = array_merge( $pages, $this->getPagesFromDir( $root . '/' . $l ) );
+			}
+		}
+		foreach ( $pages as $page ) {
+			$parts = explode( ':', $page['name'] );
+			// TODO: better sanitizing!
+			$namespace = $parts[0] == 'Main' ? false : $parts[0];
+			if ( strpos( $namespace, '|' ) !== false ) {
+				$namespace = str_replace( '|', '/', $namespace );
+			}
+			$name = str_replace( '.mediawiki', '', $parts[1] );
+			if ( strpos( $name, '|' ) !== false ) {
+				$name = str_replace( '|', '/', $name );
+			}
+			$fulltext = ( $namespace ? $namespace . ':' : '' ) . $name;
+			$title = Title::newFromText( $fulltext );
+			$wp = WikiPage::factory( $title );
+			$err = '';
+			$wp->doDeleteArticle( 'Deleted by PagePort', false, null, null, $err, $user, true );
+		}
+		return $pages;
+	}
+
+	/**
 	 * @param string $dir
 	 *
 	 * @return array
