@@ -48,5 +48,5 @@ class PagePortDeletePagesMaintenance extends Maintenance {
 
 }
 
-$maintClass = PagePortImportPagesMaintenance::class;
+$maintClass = PagePortDeletePagesMaintenance::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
