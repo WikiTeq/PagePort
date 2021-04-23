@@ -276,7 +276,9 @@ class PagePort {
 		if ( $packageName === null ) {
 			$packageName = time();
 		}
-		$filename = $root . '/' . $packageName . '.json';
+		// Default to 'page-exchange.json'
+		$filename = $root . '/page-exchange.json';
+		// If root (`out` param) contains a .json file name, use it instead
 		if ( strpos( $root, '.json' ) !== false ) {
 			$filename = $root;
 		}

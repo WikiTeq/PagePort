@@ -35,8 +35,10 @@ class PagePortExportMaintenance extends Maintenance {
 		$this->addOption( 'publisher', 'JSON package publisher', false, true, 'u' );
 
 		$this->addOption( 'dependencies', 'List of dependencies (packages) to include (separated by comma)', false, true, 'd' );
-		$this->addOption( 'extensions', 'List of dependencies (extensions) to include (separated by comma)', false, true, 'd' );
+		$this->addOption( 'extensions', 'List of dependencies (extensions) to include (separated by comma)', false, true, 'e' );
 		// @codingStandardsIgnoreEnd
+
+		$this->addOption( 'clean', 'Wipe the destination directory first', false, false, 'x' );
 
 		$this->requireExtension( 'PagePort' );
 		if ( $args ) {
@@ -128,6 +130,18 @@ class PagePortExportMaintenance extends Maintenance {
 						$extensions
 					);
 			} else {
+				if( $this->getOption( 'clean' ) ) {
+					$files = glob( $root . '/**/*' ); // get all file names
+					foreach ( $files as $file ) { // iterate files
+						if( $file == '.' || $file == '..' ) continue;
+						if ( is_file( $file ) ) {
+							unlink( $file ); // delete file
+						}
+						if ( is_dir( $file ) ) {
+							rmdir( $file );
+						}
+					}
+				}
 				PagePort::getInstance()->export( $pages, $root );
 			}
 			if ( $zipfile ) {
