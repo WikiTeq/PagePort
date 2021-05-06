@@ -228,6 +228,10 @@ class PagePort {
 	 */
 	public function getNamespaceName( $namespace ) {
 		$namespaceName = 'Main';
+		// TODO: Maybe this also need to be in content language? Not sure
+		if( $namespace === NS_PROJECT ) {
+			return 'Project';
+		}
 		if ( $namespace !== NS_MAIN ) {
 			if ( class_exists( 'LanguageConverterFactory' ) ) {
 				$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()->convertNamespace( $namespace );
@@ -286,7 +290,7 @@ class PagePort {
 			'publisher' => $publisher ? $publisher : 'PagePort',
 			'author' => $author ? $author : 'PagePort',
 			'language' => $wgLanguageCode,
-			"url" => "https://github.com/WikiWorks/Page-Exchange-packages",
+			"url" => "https://github.com/$repo",
 			"packages" => [
 				$packageName => [
 					"globalID" => str_replace(' ', '.', $packageName),
