@@ -392,7 +392,7 @@ class PagePort {
 	 *
 	 * @return string[]|string
 	 */
-	public function getAllPagesForCategory( $top_category, $num_levels, $substring = null ) {
+	public function getAllPagesForCategory( $top_category, $num_levels, $substring = null, $inclusive = false ) {
 		if ( 0 == $num_levels ) {
 			return $top_category;
 		}
@@ -480,6 +480,12 @@ class PagePort {
 				return $this->fixedMultiSort( $sortkeys, $pages );
 			} else {
 				$categories = array_merge( $categories, $newcategories );
+				if( $inclusive ) {
+					foreach ( $newcategories as $newcategory ) {
+						$pages[ 'Category:' . $newcategory.'@' ] = 'Category:' . $newcategory;
+						$sortkeys[ 'Category:' . $newcategory ] = 'Category:' . $newcategory;
+					}
+				}
 			}
 			$checkcategories = array_diff( $newcategories, [] );
 		}

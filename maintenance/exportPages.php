@@ -93,7 +93,7 @@ class PagePortExportMaintenance extends Maintenance {
 				$this->fatalError( 'The category specified does not exits, check for typos.' );
 			}
 			// TODO: test with displaytitle overrides!!
-			$pages = PagePort::getInstance()->getAllPagesForCategory( $category, 1 );
+			$pages = PagePort::getInstance()->getAllPagesForCategory( $category, 1, null, true );
 		}
 		if ( $pagelist ) {
 			if ( !file_exists( $pagelist ) ) {
