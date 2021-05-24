@@ -4,13 +4,19 @@ use MediaWiki\MediaWikiServices;
 
 class PagePort {
 
+	/**
+	 * @var PagePort
+	 */
 	public static $instance;
+	/**
+	 * @var array
+	 */
 	private static $constantsCache = [];
 
 	/**
 	 * @return PagePort
 	 */
-	public static function getInstance() {
+	public static function getInstance(): PagePort {
 		if ( self::$instance === null ) {
 			self::$instance = new self();
 		}
@@ -19,38 +25,19 @@ class PagePort {
 
 	/**
 	 * @param string $root
-	 * @param User|null $user
+	 * @param string|null $user
 	 *
 	 * @return array
 	 * @throws MWException
+	 * @throws Exception
 	 */
-	public function import( $root, $user = null ) {
-		if ( !is_dir( $root ) ) {
-			throw new Exception( 'Source directory does not exist or you have no read permissions' );
-		}
-		if ( $user !== null ) {
+	public function import( string $root, string $user = null ): array {
+		if( $user !== null ) {
 			$user = User::newFromName( $user );
 		}
-		$list = scandir( $root );
-		$pages = [];
-		foreach ( $list as $l ) {
-			if ( is_dir( $root . '/' . $l ) && $l != '.' && $l != '..' ) {
-				$pages = array_merge( $pages, $this->getPagesFromDir( $root . '/' . $l ) );
-			}
-		}
+		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
-			$parts = explode( ':', $page['name'] );
-			// TODO: better sanitizing!
-			$namespace = $parts[0] == 'Main' ? false : $parts[0];
-			if ( strpos( $namespace, '|' ) !== false ) {
-				$namespace = str_replace( '|', '/', $namespace );
-			}
-			$name = str_replace( '.mediawiki', '', $parts[1] );
-			if ( strpos( $name, '|' ) !== false ) {
-				$name = str_replace( '|', '/', $name );
-			}
-			$fulltext = ( $namespace ? $namespace . ':' : '' ) . $name;
-			$title = Title::newFromText( $fulltext );
+			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
 			$wp->doEditContent( new WikitextContent( $page['content'] ), 'Imported by PagePort', 0, false, $user );
 		}
@@ -59,41 +46,48 @@ class PagePort {
 
 	/**
 	 * @param string $root
-	 * @param User|null $user
+	 * @param string|null $user
 	 *
 	 * @return array
 	 * @throws MWException
+	 * @throws Exception
 	 */
-	public function delete( $root, $user = null ) {
-		if ( !is_dir( $root ) ) {
-			throw new Exception( 'Source directory does not exist or you have no read permissions' );
-		}
+	public function delete( string $root, string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
 		}
+		$pages = $this->getPages( $root );
+		foreach ( $pages as $page ) {
+			$title = Title::newFromText( $page['fulltitle'] );
+			$wp = WikiPage::factory( $title );
+			$err = '';
+			$wp->doDeleteArticle(
+				'Deleted by PagePort',
+				false,
+				null,
+				null,
+				$err,
+				$user,
+				true
+			);
+		}
+		return $pages;
+	}
+
+	/**
+	 * @param string $root
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	private function getPages( string $root ): array {
+		$this->checkDirectory( $root );
 		$list = scandir( $root );
 		$pages = [];
 		foreach ( $list as $l ) {
 			if ( is_dir( $root . '/' . $l ) && $l != '.' && $l != '..' ) {
 				$pages = array_merge( $pages, $this->getPagesFromDir( $root . '/' . $l ) );
 			}
-		}
-		foreach ( $pages as $page ) {
-			$parts = explode( ':', $page['name'] );
-			// TODO: better sanitizing!
-			$namespace = $parts[0] == 'Main' ? false : $parts[0];
-			if ( strpos( $namespace, '|' ) !== false ) {
-				$namespace = str_replace( '|', '/', $namespace );
-			}
-			$name = str_replace( '.mediawiki', '', $parts[1] );
-			if ( strpos( $name, '|' ) !== false ) {
-				$name = str_replace( '|', '/', $name );
-			}
-			$fulltext = ( $namespace ? $namespace . ':' : '' ) . $name;
-			$title = Title::newFromText( $fulltext );
-			$wp = WikiPage::factory( $title );
-			$err = '';
-			$wp->doDeleteArticle( 'Deleted by PagePort', false, null, null, $err, $user, true );
 		}
 		return $pages;
 	}
@@ -103,7 +97,7 @@ class PagePort {
 	 *
 	 * @return array
 	 */
-	private function getPagesFromDir( $dir ) {
+	private function getPagesFromDir( $dir ): array {
 		$pages = [];
 		$list = scandir( $dir );
 		foreach ( $list as $l ) {
@@ -112,9 +106,28 @@ class PagePort {
 				if( strpos( basename( $dir ) . '/' . $l, '.' ) === 0 ) {
 					continue;
 				}
+
+				$namespace = basename( $dir );
+				$name = $l;
+
+				if ( strpos( $namespace, '|' ) !== false ) {
+					$namespace = str_replace( '|', '/', $namespace );
+				}
+				$name = str_replace( '.mediawiki', '', $name );
+				if ( strpos( $name, '|' ) !== false ) {
+					$name = str_replace( '|', '/', $name );
+				}
+				$fulltitle = $namespace . ':' .$name;
+				// Clean up the Main namespace from the title
+				$fulltitle = str_replace('Main:', '', $fulltitle);
+
+
 				$pages[] = [
-					'name' => basename( $dir ) . ':' . $l,
-					'content' => file_get_contents( $dir . '/' . $l )
+					'name' => $name, // raw name of the file with directory as a namespace
+					'content' => file_get_contents( $dir . '/' . $l ), // file contents
+					'namespace' => $namespace, // sanitized namespace
+					'basetitle' => $name, // sanitized title without a namespace,
+					'fulltitle' => $fulltitle // sanitized full title inc. a namespace
 				];
 			}
 		}
@@ -124,7 +137,7 @@ class PagePort {
 	/**
 	 * @return array
 	 */
-	public function getAllPages() {
+	public function getAllPages(): array {
 		$pages = [];
 		$dbr = wfGetDB( DB_REPLICA );
 		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
@@ -151,7 +164,7 @@ class PagePort {
 	 *
 	 * @return string
 	 */
-	private function titleString( $title ) {
+	private function titleString( $title ): string {
 		$namespace = $title->getNsText();
 		if ( $namespace !== '' ) {
 			$namespace .= ':';
@@ -166,7 +179,7 @@ class PagePort {
 	/**
 	 * @return Language
 	 */
-	private function getContLang() {
+	private function getContLang(): Language {
 		if ( method_exists( "MediaWiki\\MediaWikiServices", "getContentLanguage" ) ) {
 			return MediaWikiServices::getInstance()->getContentLanguage();
 		} else {
@@ -183,8 +196,9 @@ class PagePort {
 	 *
 	 * @return array|bool
 	 * @throws MWException
+	 * @throws Exception
 	 */
-	public function export( $pages, $root, $save = true ) {
+	public function export( array $pages, string $root, bool $save = true ) {
 		if ( $save && ( !is_dir( $root ) || !is_writable( $root ) ) ) {
 			throw new Exception( 'Output directory does not exist or you have no write permissions' );
 		}
@@ -197,7 +211,6 @@ class PagePort {
 			if ( !$namespaceName || $namespaceName == '' ) {
 				continue;
 			}
-			// TODO: better sanitizing!
 			if ( strpos( $namespaceName, '/' ) !== false ) {
 				$namespaceName = str_replace( '/', '|', $namespaceName );
 			}
@@ -222,59 +235,73 @@ class PagePort {
 	}
 
 	/**
+	 * Returns namespace canonical name
+	 *
 	 * @param int $namespace
 	 *
 	 * @return string
 	 */
-	public function getNamespaceName( $namespace ) {
-		$namespaceName = 'Main';
-		// TODO: Maybe this also need to be in content language? Not sure
-		if( $namespace === NS_PROJECT ) {
-			return 'Project';
+	public function getNamespaceName( int $namespace ): string {
+		if( $namespace === NS_MAIN ) {
+			return 'Main';
 		}
-		if ( $namespace !== NS_MAIN ) {
-			if ( class_exists( 'LanguageConverterFactory' ) ) {
-				$namespaceName = MediaWikiServices::getInstance()->getContentLanguage()->convertNamespace( $namespace );
-			} else {
-				global $wgContLang;
-				$namespaceName = $wgContLang->convertNamespace( $namespace );
-			}
-		}
-		return $namespaceName;
+		return MediaWikiServices::getInstance()->getNamespaceInfo()->getCanonicalName( $namespace );
 	}
 
-	// most of the code below is imported from PageForms
+	/**
+	 * Returns namespace constant name (NS_MAIN, NS_FILE, etc) by constant value
+	 *
+	 * @param string $value
+	 *
+	 * @return array|mixed|null
+	 */
+	public function getNamespaceByValue( $value ) {
+		if ( isset( self::$constantsCache[$value] ) ) {
+			return self::$constantsCache[$value];
+		}
+		$defines = get_defined_constants( true );
+		$constants = array_filter(
+			$defines['user'],
+			function ( $k ) {
+				return strpos( $k, 'NS_' ) !== false;
+			},
+			ARRAY_FILTER_USE_KEY
+		);
+		$constants = array_flip( $constants );
+		self::$constantsCache = $constants;
+		return $constants[$value] ?? null;
+	}
 
 	/**
 	 * @param string[] $pages Pages to export
 	 * @param string $root Output directory
-	 * @param null|string $packageName Package name
+	 * @param string|null $packageName Package name
 	 * @param string $packageDesc Package desc
 	 *
-	 * @param null|string $repo GitHub repository name to substitute wiki URLs
+	 * @param string|null $repo GitHub repository name to substitute wiki URLs
 	 *
-	 * @param null|string $version Version
-	 * @param null|string $author Author
-	 * @param null|string $publisher Publisher
-	 * @param null|string[] $dependencies Array of dependencies (packages)
-	 * @param null|string[] $extensions Array of dependencies (extensions)
+	 * @param string|null $version Version
+	 * @param string|null $author Author
+	 * @param string|null $publisher Publisher
+	 * @param string[]|null $dependencies Array of dependencies (packages)
+	 * @param string[]|null $extensions Array of dependencies (extensions)
 	 *
 	 * @param bool $save to save resulting JSON
 	 *
-	 * @return string|array
+	 * @return array|bool
 	 */
 	public function exportJSON(
-		$pages,
-		$root,
-		$packageName = null,
-		$packageDesc = '',
-		$repo = null,
-		$version = null,
-		$author = null,
-		$publisher = null,
-		$dependencies = null,
-		$extensions = null,
-		$save = true
+		array $pages,
+		string $root,
+		string $packageName = null,
+		string $packageDesc = '',
+		string $repo = null,
+		string $version = null,
+		string $author = null,
+		string $publisher = null,
+		array $dependencies = null,
+		array $extensions = null,
+		bool $save = true
 	) {
 		global $wgLanguageCode;
 		if ( $packageName === null ) {
@@ -307,6 +334,7 @@ class PagePort {
 			$name = $title->getText();
 			$escapedName = str_replace( '/', '|', $name );
 			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
+			// PagePort can't handle deprecated NS_IMAGE
 			if( $namespace === "NS_IMAGE" ) {
 				$namespace = "NS_FILE";
 			}
@@ -340,33 +368,13 @@ class PagePort {
 		return true;
 	}
 
-	/**
-	 * @param string $value
-	 *
-	 * @return array|mixed|null
-	 */
-	public function getNamespaceByValue( $value ) {
-		if ( isset( self::$constantsCache[$value] ) ) {
-			return self::$constantsCache[$value];
-		}
-		$defines = get_defined_constants( true );
-		$constants = array_filter(
-			$defines['user'],
-			function ( $k ) {
-				return strpos( $k, 'NS_' ) !== false;
-			},
-			ARRAY_FILTER_USE_KEY
-		);
-		$constants = array_flip( $constants );
-		self::$constantsCache = $constants;
-		return isset( $constants[$value] ) ? $constants[$value] : null;
-	}
+	// most of the code below is imported from PageForms
 
 	/**
 	 * Helper function - returns names of all the categories.
 	 * @return array
 	 */
-	public function getAllCategories() {
+	public function getAllCategories(): array {
 		$categories = [];
 		$db = wfGetDB( DB_REPLICA );
 		$res = $db->select( 'category', 'cat_title', null, __METHOD__ );
@@ -501,7 +509,7 @@ class PagePort {
 	 *
 	 * @return string SQL condition for use in WHERE clause
 	 */
-	private function getSQLConditionForAutocompleteInColumn( $column, $substring, $replaceSpaces = true ) {
+	private function getSQLConditionForAutocompleteInColumn( $column, $substring, $replaceSpaces = true ): string {
 		global $wgDBtype, $wgPageFormsAutocompleteOnAllChars;
 
 		$db = wfGetDB( DB_REPLICA );
@@ -545,7 +553,7 @@ class PagePort {
 	 *
 	 * @return string[] a sorted version of $pages, sorted via $sortkeys
 	 */
-	private function fixedMultiSort( $sortkeys, $pages ) {
+	private function fixedMultiSort( $sortkeys, $pages ): array {
 		array_multisort( $sortkeys, $pages );
 		$newPages = [];
 		foreach ( $pages as $key => $value ) {
@@ -553,6 +561,17 @@ class PagePort {
 			$newPages[$fixedKey] = $value;
 		}
 		return $newPages;
+	}
+
+	/**
+	 * @param string $root
+	 *
+	 * @throws Exception
+	 */
+	private function checkDirectory( string $root ) {
+		if ( !is_dir( $root ) ) {
+			throw new Exception( 'Source directory does not exist or you have no read permissions' );
+		}
 	}
 
 }

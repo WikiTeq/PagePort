@@ -77,7 +77,7 @@ class PagePortExportMaintenance extends Maintenance {
 		$zipfile = $this->getOption( 'zip' );
 		$full = $this->getOption( 'full' );
 		$package = $this->getOption( 'package', null );
-		$desc = $this->getOption( 'desc' );
+		$desc = $this->getOption( 'desc', '' );
 		$github = $this->getOption( 'github' );
 		$version = $this->getOption( 'version' );
 		$author = $this->getOption( 'author' );

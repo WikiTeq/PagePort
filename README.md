@@ -96,3 +96,7 @@ php maintenance/exportPages.php --category Test --out ~/export/test.json --json 
 ```
 
 See `php maintenance/importPages.php --help` for details
+
+# Contribution
+
+TODO
