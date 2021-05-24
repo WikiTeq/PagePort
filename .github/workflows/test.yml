@@ -1,18 +1,50 @@
-name: PHP Composer
+name: CI
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [ master ]
+    pull_request:
+        branches: [ "*" ]
 
 jobs:
-  build:
+    test:
+        name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
 
-    runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                include:
+                    - mw: 'REL1_35'
+                      php: 7.4
+                      extension: 'PagePort'
 
-    steps:
-      - uses: ProfessionalWiki/setup-mediawiki@master
-        with:
-          version: REL1_35
-          extension: PagePort
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: mediawiki
+
+        steps:
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  extensions: mbstring, intl
+                  tools: composer:1
+
+            - uses: actions/checkout@v2
+              with:
+                  path: Project
+
+            - name: Install MediaWiki
+              working-directory: ~
+              run: bash Project/.github/workflows/install_mediawiki.sh ${{ matrix.mw }} ${{ matrix.extension }}
+
+            - uses: actions/checkout@v2
+              with:
+                  path: mediawiki/extensions/${{ matrix.extension }}
+
+            - name: Composer update
+              run: composer update
+
+            - name: Run PHPUnit
+              run: php tests/phpunit/phpunit.php extensions/${{ matrix.extension }}/tests/phpunit
