@@ -35,7 +35,7 @@ echo '$wgDevelopmentWarnings = true;' >> LocalSettings.php
 echo "wfLoadExtension( '$EXTENSION' );" >> LocalSettings.php
 
 # Load all the skins and extensions packages
-cat <<EOT >> composer.local.json
+cat <<EOT > composer.local.json
 {
 	"extra": {
 		"merge-plugin": {
