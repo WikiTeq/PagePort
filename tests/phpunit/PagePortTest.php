@@ -31,7 +31,8 @@ class PagePortTest extends MediaWikiTestCase {
 					NS_CUSTOM_TALK => "CustomNamespace_talk",
 					NS_CUSTOM_SLASH => "CustomNamespace/With/Slashes",
 					NS_CUSTOM_SLASH_TALK => "CustomNamespace/With/Slashes_talk",
-				]
+				],
+				'wgMetaNamespace' => 'RandomMetaName'
 			]
 		);
 
@@ -45,6 +46,7 @@ class PagePortTest extends MediaWikiTestCase {
 		$this->insertPage( 'Page7Test', 'Page7TestContents', NS_CUSTOM );
 		$this->insertPage( 'Page8Test', 'Page8TestContents', NS_CUSTOM_SLASH );
 		$this->insertPage( 'Page9Test', 'Page9TestContents [[Category:TestRootCategory]]', NS_CATEGORY );
+		$this->insertPage( 'Page10Test', 'Page10TestContents', NS_PROJECT );
 		$this->pp = PagePort::getInstance();
 	}
 
@@ -77,6 +79,8 @@ class PagePortTest extends MediaWikiTestCase {
 			'Page with spaces',
 			'CustomNamespace:Page7Test',
 			'CustomNamespace/With/Slashes:Page8Test',
+			'Project:Page10Test',
+			'RandomMetaName:Page10Test',
 		];
 		$result = $this->pp->export( $pages, "testRoot", false );
 		$this->assertCount( count( $pages ), $result, 'with $save=false an array is returned' );
@@ -130,6 +134,16 @@ class PagePortTest extends MediaWikiTestCase {
 			array_keys( $result )[8],
 			'file root for pages with extra namespace with slashes is calculated correctly'
 		);
+		$this->assertEquals(
+			'testRoot/Project/Page10Test.mediawiki',
+			array_keys( $result )[9],
+			'file root for project pages exported correctly'
+		);
+		$this->assertEquals(
+			'testRoot/Project/Page10Test.mediawiki',
+			array_keys( $result )[10],
+			'file root for meta namespace pages exported correctly'
+		);
 	}
 
 	/**
@@ -146,6 +160,10 @@ class PagePortTest extends MediaWikiTestCase {
 			'Page with spaces',
 			'CustomNamespace:Page7Test',
 			'CustomNamespace/With/Slashes:Page8Test',
+			'CustomNamespace:Page7Test',
+			'CustomNamespace/With/Slashes:Page8Test',
+			'Project:Page10Test',
+			'RandomMetaName:Page10Test',
 		];
 		$result = $this->pp->exportJSON(
 			$pages,
@@ -163,6 +181,50 @@ class PagePortTest extends MediaWikiTestCase {
 		$this->assertCount( 2, $result, 'with $save=false an array of two items is returned' );
 		$json = json_decode( $result[1] );
 		$this->assertJsonMatchesSchema( $json, __DIR__ . '/../../pageexchange.schema.json' );
+		// Also test some of the JSON data
+		$json = json_decode( $result[1], true );
+		// NS_IMAGE -> NS_FILE
+		$this->assertEquals(
+			'NS_FILE',
+			$json['packages']['testPackage']['pages'][5]['namespace']
+		);
+		// Repo url properly escaped
+		$this->assertEquals(
+			'https://raw.githubusercontent.com/testRepo/master/Main%2FPage1Test.mediawiki',
+			$json['packages']['testPackage']['pages'][0]['url']
+		);
+		// Required extensions
+		$this->assertEquals(
+			'testextension1',
+			$json['packages']['testPackage']['requiredExtensions'][0]
+		);
+		$this->assertEquals(
+			'testextension2',
+			$json['packages']['testPackage']['requiredExtensions'][1]
+		);
+		// Required packages
+		$this->assertEquals(
+			'testpackage1',
+			$json['packages']['testPackage']['requiredPackages'][0]
+		);
+		$this->assertEquals(
+			'testpackage2',
+			$json['packages']['testPackage']['requiredPackages'][1]
+		);
+		// ID generation
+		$this->assertEquals(
+			'testPackage',
+			$json['packages']['testPackage']['globalID']
+		);
+		// Meta namespace
+		$this->assertEquals(
+			'NS_PROJECT',
+			$json['packages']['testPackage']['pages'][12]['namespace']
+		);
+		$this->assertEquals(
+			'https://raw.githubusercontent.com/testRepo/master/Project%2FPage10Test.mediawiki',
+			$json['packages']['testPackage']['pages'][12]['url']
+		);
 	}
 
 	public function namespaceNames(): array {
