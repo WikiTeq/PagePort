@@ -10,12 +10,14 @@ jobs:
     test:
         name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
 
+        env:
+            EXTENSION: 'PagePort'
+
         strategy:
             matrix:
                 include:
                     - mw: 'REL1_35'
                       php: 7.4
-                      extension: 'PagePort'
 
         runs-on: ubuntu-latest
 
@@ -53,14 +55,14 @@ jobs:
 
             - name: Install MediaWiki
               working-directory: ~
-              run: bash Project/.github/workflows/install_mediawiki.sh ${{ matrix.mw }} ${{ matrix.extension }}
+              run: bash Project/.github/workflows/install_mediawiki.sh ${{ matrix.mw }} ${{ env.EXTENSION }}
 
             - uses: actions/checkout@v2
               with:
-                  path: mediawiki/extensions/${{ matrix.extension }}
+                  path: mediawiki/extensions/${{ env.EXTENSION }}
 
             - name: Composer update
               run: composer update
 
             - name: Run PHPUnit
-              run: php tests/phpunit/phpunit.php extensions/${{ matrix.extension }}/tests/phpunit
+              run: php tests/phpunit/phpunit.php extensions/${{ env.EXTENSION }}/tests/phpunit
