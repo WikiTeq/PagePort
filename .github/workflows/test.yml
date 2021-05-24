@@ -10,6 +10,7 @@ jobs:
     test:
         name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
 
+        runs-on: ubuntu-latest
         env:
             EXTENSION: 'PagePort'
 
@@ -18,8 +19,6 @@ jobs:
                 include:
                     - mw: 'REL1_35'
                       php: 7.4
-
-        runs-on: ubuntu-latest
 
         defaults:
             run:
