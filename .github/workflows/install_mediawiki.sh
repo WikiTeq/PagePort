@@ -3,6 +3,8 @@
 MW_BRANCH=$1
 EXTENSION=$2
 
+echo "Installing MediaWiki $MW_BRANCH with extension $EXTENSION .."
+
 # Download mediawiki branch
 wget https://github.com/wikimedia/mediawiki/archive/$MW_BRANCH.tar.gz -nv
 
