@@ -130,12 +130,16 @@ class PagePortExportMaintenance extends Maintenance {
 						$extensions
 					);
 			} else {
-				if( $this->getOption( 'clean' ) ) {
-					$files = glob( $root . '/**/*' ); // get all file names
-					foreach ( $files as $file ) { // iterate files
-						if( $file == '.' || $file == '..' ) continue;
+				if ( $this->getOption( 'clean' ) ) {
+					// get all file names
+					$files = glob( $root . '/**/*' );
+					// iterate files
+					foreach ( $files as $file ) {
+						if ( $file == '.' || $file == '..' ) { continue;
+						}
 						if ( is_file( $file ) ) {
-							unlink( $file ); // delete file
+							// delete file
+							unlink( $file );
 						}
 						if ( is_dir( $file ) ) {
 							rmdir( $file );

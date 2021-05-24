@@ -32,7 +32,7 @@ class PagePort {
 	 * @throws Exception
 	 */
 	public function import( string $root, string $user = null ): array {
-		if( $user !== null ) {
+		if ( $user !== null ) {
 			$user = User::newFromName( $user );
 		}
 		$pages = $this->getPages( $root );
@@ -103,7 +103,7 @@ class PagePort {
 		foreach ( $list as $l ) {
 			if ( !is_dir( $dir . '/' . $l ) ) {
 				// Skip hidden dirs, like .git
-				if( strpos( basename( $dir ) . '/' . $l, '.' ) === 0 ) {
+				if ( strpos( basename( $dir ) . '/' . $l, '.' ) === 0 ) {
 					continue;
 				}
 
@@ -117,17 +117,21 @@ class PagePort {
 				if ( strpos( $name, '|' ) !== false ) {
 					$name = str_replace( '|', '/', $name );
 				}
-				$fulltitle = $namespace . ':' .$name;
+				$fulltitle = $namespace . ':' . $name;
 				// Clean up the Main namespace from the title
-				$fulltitle = str_replace('Main:', '', $fulltitle);
-
+				$fulltitle = str_replace( 'Main:', '', $fulltitle );
 
 				$pages[] = [
-					'name' => $name, // raw name of the file with directory as a namespace
-					'content' => file_get_contents( $dir . '/' . $l ), // file contents
-					'namespace' => $namespace, // sanitized namespace
-					'basetitle' => $name, // sanitized title without a namespace,
-					'fulltitle' => $fulltitle // sanitized full title inc. a namespace
+					// raw name of the file with directory as a namespace
+					'name' => $name,
+					// file contents
+					'content' => file_get_contents( $dir . '/' . $l ),
+					// sanitized namespace
+					'namespace' => $namespace,
+					// sanitized title without a namespace
+					'basetitle' => $name,
+					// sanitized full title inc. a namespace
+					'fulltitle' => $fulltitle
 				];
 			}
 		}
@@ -242,7 +246,7 @@ class PagePort {
 	 * @return string
 	 */
 	public function getNamespaceName( int $namespace ): string {
-		if( $namespace === NS_MAIN ) {
+		if ( $namespace === NS_MAIN ) {
 			return 'Main';
 		}
 		return MediaWikiServices::getInstance()->getNamespaceInfo()->getCanonicalName( $namespace );
@@ -320,7 +324,7 @@ class PagePort {
 			"url" => "https://github.com/$repo",
 			"packages" => [
 				$packageName => [
-					"globalID" => str_replace(' ', '.', $packageName),
+					"globalID" => str_replace( ' ', '.', $packageName ),
 					"description" => $packageDesc,
 					"version" => $version ? $version : '0.1',
 					"pages" => [],
@@ -335,7 +339,7 @@ class PagePort {
 			$escapedName = str_replace( '/', '|', $name );
 			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
 			// PagePort can't handle deprecated NS_IMAGE
-			if( $namespace === "NS_IMAGE" ) {
+			if ( $namespace === "NS_IMAGE" ) {
 				$namespace = "NS_FILE";
 			}
 			$item = [
@@ -346,7 +350,10 @@ class PagePort {
 			if ( $repo !== null ) {
 				$item['url'] =
 					"https://raw.githubusercontent.com/{$repo}/master/" .
-					rawurlencode ( "{$this->getNamespaceName( $title->getNamespace() )}" . "/" . "{$escapedName}.mediawiki" );
+					rawurlencode(
+						"{$this->getNamespaceName( $title->getNamespace() )}"
+						. "/" . "{$escapedName}.mediawiki"
+					);
 			}
 			$jsonPages[] = $item;
 		}
@@ -397,6 +404,7 @@ class PagePort {
 	 * @param string $top_category
 	 * @param int $num_levels
 	 * @param string|null $substring
+	 * @param bool $inclusive
 	 *
 	 * @return string[]|string
 	 */
@@ -404,7 +412,7 @@ class PagePort {
 		if ( 0 == $num_levels ) {
 			return $top_category;
 		}
-		global $wgPageFormsMaxAutocompleteValues, $wgPageFormsUseDisplayTitle;
+		global $wgPageFormsMaxAutocompleteValues;
 
 		$db = wfGetDB( DB_REPLICA );
 		$top_category = str_replace( ' ', '_', $top_category );
@@ -488,9 +496,9 @@ class PagePort {
 				return $this->fixedMultiSort( $sortkeys, $pages );
 			} else {
 				$categories = array_merge( $categories, $newcategories );
-				if( $inclusive ) {
+				if ( $inclusive ) {
 					foreach ( $newcategories as $newcategory ) {
-						$pages[ 'Category:' . $newcategory.'@' ] = 'Category:' . $newcategory;
+						$pages[ 'Category:' . $newcategory . '@' ] = 'Category:' . $newcategory;
 						$sortkeys[ 'Category:' . $newcategory ] = 'Category:' . $newcategory;
 					}
 				}

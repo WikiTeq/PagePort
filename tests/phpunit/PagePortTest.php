@@ -13,12 +13,12 @@ class PagePortTest extends MediaWikiTestCase {
 	/** @var PagePort */
 	private $pp;
 
-	static function setupBeforeClass(): void {
+	public static function setupBeforeClass(): void {
 		parent::setUpBeforeClass();
-		define("NS_CUSTOM", 4000);
-		define("NS_CUSTOM_TALK", 4001);
-		define("NS_CUSTOM_SLASH", 4002);
-		define("NS_CUSTOM_SLASH_TALK", 4003);
+		define( "NS_CUSTOM", 4000 );
+		define( "NS_CUSTOM_TALK", 4001 );
+		define( "NS_CUSTOM_SLASH", 4002 );
+		define( "NS_CUSTOM_SLASH_TALK", 4003 );
 	}
 
 	public function setup(): void {
@@ -50,6 +50,9 @@ class PagePortTest extends MediaWikiTestCase {
 		$this->pp = PagePort::getInstance();
 	}
 
+	/**
+	 * @covers PagePort::getAllPagesForCategory
+	 */
 	public function testExportCategories(): void {
 		$pages = $this->pp->getAllPagesForCategory( 'TestRootCategory', 1, null, true );
 		$this->assertArrayEquals(
@@ -83,7 +86,7 @@ class PagePortTest extends MediaWikiTestCase {
 			'RandomMetaName:Page10Test',
 		];
 		$result = $this->pp->export( $pages, "testRoot", false );
-		$this->assertCount( count( $pages ), $result, 'with $save=false an array is returned' );
+		$this->assertCount( count( $pages ) - 1, $result, 'with $save=false an array is returned' );
 		$this->assertEquals(
 			'testRoot/Main/Page1Test.mediawiki',
 			array_keys( $result )[0],
@@ -137,12 +140,7 @@ class PagePortTest extends MediaWikiTestCase {
 		$this->assertEquals(
 			'testRoot/Project/Page10Test.mediawiki',
 			array_keys( $result )[9],
-			'file root for project pages exported correctly'
-		);
-		$this->assertEquals(
-			'testRoot/Project/Page10Test.mediawiki',
-			array_keys( $result )[10],
-			'file root for meta namespace pages exported correctly'
+			'file root for project/meta pages exported correctly'
 		);
 	}
 
