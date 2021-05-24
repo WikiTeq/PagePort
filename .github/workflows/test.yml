@@ -63,7 +63,7 @@ jobs:
                   path: mediawiki/extensions/${{ env.EXTENSION }}
 
             - name: Composer update
-              run: composer update
+              run: composer update --no-progress
 
             - name: Run PHPUnit
               run: php tests/phpunit/phpunit.php extensions/${{ env.EXTENSION }}/tests/phpunit

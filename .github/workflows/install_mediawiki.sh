@@ -19,7 +19,7 @@ cd mediawiki
 sed -i 's/"merge-dev": false/"merge-dev": true/g' composer.json
 
 # Install vendor dependencies
-composer install
+composer install --no-progress
 
 # Initialize the database
 php maintenance/install.php --dbtype sqlite --dbuser root --dbname mw --dbpath $(pwd) --pass AdminPassword WikiName AdminUser
