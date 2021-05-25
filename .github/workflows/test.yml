@@ -19,7 +19,7 @@ jobs:
                 include:
                     - mw: 'REL1_35'
                       php: 7.4
-                    - mw: 'REL1_31'
+                    - mw: 'REL1_33'
                       php: 7.4
 
         defaults:
@@ -63,7 +63,7 @@ jobs:
                   path: mediawiki/extensions/${{ env.EXTENSION }}
 
             - name: Composer update
-              run: composer update
+              run: composer update --no-progress
 
             - name: Run PHPUnit
               run: php tests/phpunit/phpunit.php extensions/${{ env.EXTENSION }}/tests/phpunit
