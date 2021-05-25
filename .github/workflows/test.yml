@@ -19,8 +19,6 @@ jobs:
                 include:
                     - mw: 'REL1_35'
                       php: 7.4
-                    - mw: 'REL1_33'
-                      php: 7.4
 
         defaults:
             run:
@@ -54,8 +52,9 @@ jobs:
               with:
                   path: Project
 
-            - name: Setup upterm session
-              uses: lhotari/action-upterm@v1
+            # SSH debug
+            #- name: Setup upterm session
+            #  uses: lhotari/action-upterm@v1
 
             - name: Install MediaWiki
               if: steps.cache-mediawiki.outputs.cache-hit != 'true'
