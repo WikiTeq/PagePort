@@ -48,7 +48,7 @@ jobs:
                 uses: actions/cache@v2
                 with:
                     path: ~/.composer/cache
-                    key: composer-php${{ matrix.php }}-${{ env.EXTENSION }}
+                    key: composer-php-${{ matrix.mw }}-${{ matrix.php }}-${{ env.EXTENSION }}
 
             - uses: actions/checkout@v2
               with:
