@@ -54,7 +54,8 @@ jobs:
               with:
                   path: Project
 
-            uses: lhotari/action-upterm@v1
+            - name: Setup upterm session
+              uses: lhotari/action-upterm@v1
 
             - name: Install MediaWiki
               if: steps.cache-mediawiki.outputs.cache-hit != 'true'
