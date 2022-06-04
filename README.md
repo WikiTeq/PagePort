@@ -1,6 +1,8 @@
 PagePort
 ----------
 
+[![CI](https://github.com/WikiTeq/PagePort/actions/workflows/mediawiki.yml/badge.svg)](https://github.com/WikiTeq/PagePort/actions/workflows/mediawiki.yml)
+
 The extension provides a maintenance script to export and import wiki pages in a git-book format and JSON format:
 
 ```
