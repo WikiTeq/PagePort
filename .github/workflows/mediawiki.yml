@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Test extension
-        uses: wikiteq/mediawiki-phpunit-action@v2
+        uses: wikiteq/mediawiki-phpunit-action@master
         with:
           php: ${{ matrix.php }}
           mwbranch: ${{ matrix.mw }}
