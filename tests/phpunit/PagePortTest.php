@@ -5,6 +5,7 @@ use EnricoStahn\JsonAssert\Assert as JsonAssert;
 /**
  * @coversDefaultClass PagePort
  * @group Database
+ * @group extension-PagePort
  */
 class PagePortTest extends MediaWikiTestCase {
 
