@@ -33,3 +33,5 @@ jobs:
           mwbranch: ${{ matrix.mw }}
           extension: PagePort
           testgroup: extension-PagePort
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
