@@ -409,7 +409,7 @@ class PagePort {
 	 * @return string[]|string
 	 */
 	public function getAllPagesForCategory( $top_category, $num_levels, $substring = null, $inclusive = false ) {
-		if ( 0 == $num_levels ) {
+		if ( $num_levels == 0 ) {
 			return $top_category;
 		}
 		global $wgPageFormsMaxAutocompleteValues;
