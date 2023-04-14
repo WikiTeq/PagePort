@@ -4,7 +4,7 @@
 	"author": [
 		"WikiWorks team"
 	],
-	"url": "https://www.mediawiki.org/wiki/Extension:PagePort",
+	"url": "https://github.com/WikiTeq/PagePort#readme",
 	"descriptionmsg": "pageport-desc",
 	"license-name": "MIT",
 	"requires": {
