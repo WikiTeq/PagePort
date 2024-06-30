@@ -57,7 +57,7 @@ The extension provides a maintenance script to export and import wiki pages in a
 # Export page from "Test" category, save to ~/export/ folder
 php maintenance/exportPages.php --category Test --out ~/export/
 
-# Export page listen in pages.txt, save to ~/export/ folder
+# Export page listed in pages.txt, save to ~/export/ folder
 php maintenance/exportPages.php --pagelist pages.txt --out ~/export/
 
 # Export all the pages, save to ~/export/ folder
