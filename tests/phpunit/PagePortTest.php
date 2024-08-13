@@ -265,6 +265,7 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @covers PagePort::import
+	 * @covers PagePort::getAllPages
 	 */
 	public function testImport() {
 		$tempDir = $this->tempdir( 'pageprot_' );
@@ -289,6 +290,10 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			$this->assertTrue( $title->exists() );
 			$wp = WikiPage::factory( $title );
 			$this->assertTrue( strlen( $wp->getContent()->getWikitextForTransclusion() ) > 0 );
+		}
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertContains( $p, $allPages );
 		}
 	}
 

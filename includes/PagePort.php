@@ -149,7 +149,7 @@ class PagePort {
 		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
 		if ( $res ) {
 			// @codingStandardsIgnoreStart
-			while ( $res && $row = $dbr->fetchRow( $res ) ) {
+			while ( $res && $row = $res->fetchRow() ) {
 				// @codingStandardsIgnoreEnd
 				$cur_title = Title::makeTitleSafe( $row['page_namespace'], $row['page_title'] );
 				if ( $cur_title === null ) {
@@ -175,7 +175,8 @@ class PagePort {
 		if ( $namespace !== '' ) {
 			$namespace .= ':';
 		}
-		if ( MWNamespace::isCapitalized( $title->getNamespace() ) ) {
+		$nsInfo = MediaWikiServices::getInstance()->getNamespaceInfo();
+		if ( $nsInfo->isCapitalized( $title->getNamespace() ) ) {
 			return $namespace . $this->getContLang()->ucfirst( $title->getText() );
 		} else {
 			return $namespace . $title->getText();
