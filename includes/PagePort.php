@@ -49,7 +49,11 @@ class PagePort {
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
-			$wp->doUserEditContent( new WikitextContent( $page['content'] ), $user, 'Imported by PagePort' );
+			$wp->doUserEditContent(
+				ContentHandler::makeContent( $page['content'], $title ),
+				$user,
+				'Imported by PagePort'
+			);
 		}
 		return $pages;
 	}
@@ -218,14 +222,18 @@ class PagePort {
 			if ( strpos( $namespaceName, '/' ) !== false ) {
 				$namespaceName = str_replace( '/', '|', $namespaceName );
 			}
-			$content = WikiPage::factory( $title )->getContent()->getWikitextForTransclusion();
+			$contentObj = WikiPage::factory( $title )->getContent();
+			$content = $contentObj->getWikitextForTransclusion();
 			if ( $save && !file_exists( $root . '/' . $namespaceName ) ) {
 				mkdir( $root . '/' . $namespaceName );
 			}
 			if ( strpos( $filename, '/' ) !== false ) {
 				$filename = str_replace( '/', '|', $filename );
 			}
-			$targetFileName = $root . '/' . $namespaceName . '/' . $filename . '.mediawiki';
+			$targetFileName = $root . '/' . $namespaceName . '/' . $filename;
+			if ( $contentObj->getModel() === CONTENT_MODEL_WIKITEXT ) {
+				$targetFileName .= '.mediawiki';
+			}
 			if ( $save ) {
 				file_put_contents( $targetFileName, $content );
 			} else {
