@@ -326,12 +326,15 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 	 * rather than using the assertJsonMatchesSchema() from the
 	 * estahn/phpunit-json-assertions library, re-implement it based on
 	 * justinrainbow/json-schema
+	 *
+	 * @param mixed $json
+	 * @param string $schema
 	 */
 	private function assertJsonMatchesSchema( $json, string $schema ) {
 		$validator = new Validator();
 		$validator->validate(
 			$json,
-			(object)['$ref' => 'file://' . realpath( $schema)]
+			(object)[ '$ref' => 'file://' . realpath( $schema ) ]
 		);
 		if ( $validator->isValid() ) {
 			$this->addToAssertionCount( 1 );
