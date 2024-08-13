@@ -12,25 +12,12 @@
 	},
 	"type": "other",
 	"AutoloadClasses": {
-		"PagePortHooks": "PagePortHooks.php",
 		"PagePort": "includes/PagePort.php"
-	},
-	"config": {},
-	"ExtensionMessagesFiles": {
-		"PagePortAlias": "PagePort.i18n.alias.php"
-	},
-	"Hooks": {
-		"UnitTestsList": "PagePortHooks::onUnitTestsList"
 	},
 	"MessagesDirs": {
 		"PagePort": [
 			"i18n"
 		]
-	},
-	"ResourceModules": {},
-	"ResourceFileModulePaths": {
-		"localBasePath": "",
-		"remoteExtPath": "PagePort"
 	},
 	"manifest_version": 2
 }
