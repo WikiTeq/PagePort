@@ -19,5 +19,8 @@
 			"i18n"
 		]
 	},
+	"ServiceWiringFiles": [
+		"includes/ServiceWiring.php"
+	],
 	"manifest_version": 2
 }

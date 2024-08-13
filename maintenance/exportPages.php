@@ -86,14 +86,11 @@ class PagePortExportMaintenance extends Maintenance {
 		$extensions = $this->getOption( 'extensions' );
 
 		if ( $category ) {
-			if ( !in_array(
-				str_replace( ' ', '_', $this->getOption( 'category' ) ),
-				PagePort::getInstance()->getAllCategories()
-			) ) {
-				$this->fatalError( 'The category specified does not exits, check for typos.' );
-			}
 			// TODO: test with displaytitle overrides!!
 			$pages = PagePort::getInstance()->getAllPagesForCategory( $category, 1, null, true );
+			if ( $pages === [] ) {
+				$this->fatalError( "The category $category is empty or does not exist." );
+			}
 		}
 		if ( $pagelist ) {
 			if ( !file_exists( $pagelist ) ) {

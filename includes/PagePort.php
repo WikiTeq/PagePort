@@ -1,13 +1,10 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
+use Wikimedia\Rdbms\ILoadBalancer;
 
 class PagePort {
 
-	/**
-	 * @var PagePort
-	 */
-	public static $instance;
 	/**
 	 * @var array
 	 */
@@ -17,10 +14,21 @@ class PagePort {
 	 * @return PagePort
 	 */
 	public static function getInstance(): PagePort {
-		if ( self::$instance === null ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
+		return MediaWikiServices::getInstance()->getService( 'PagePort' );
+	}
+
+	private Language $contentLanguage;
+	private ILoadBalancer $loadBalancer;
+	private NamespaceInfo $namespaceInfo;
+
+	public function __construct(
+		Language $contentLanguage,
+		ILoadBalancer $loadBalancer,
+		NamespaceInfo $namespaceInfo
+	) {
+		$this->contentLanguage = $contentLanguage;
+		$this->loadBalancer = $loadBalancer;
+		$this->namespaceInfo = $namespaceInfo;
 	}
 
 	/**
@@ -149,7 +157,7 @@ class PagePort {
 	 */
 	public function getAllPages(): array {
 		$pages = [];
-		$dbr = wfGetDB( DB_REPLICA );
+		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
 		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
 		if ( $res ) {
 			foreach ( $res as $row ) {
@@ -177,19 +185,11 @@ class PagePort {
 		if ( $namespace !== '' ) {
 			$namespace .= ':';
 		}
-		$nsInfo = MediaWikiServices::getInstance()->getNamespaceInfo();
-		if ( $nsInfo->isCapitalized( $title->getNamespace() ) ) {
-			return $namespace . $this->getContLang()->ucfirst( $title->getText() );
+		if ( $this->namespaceInfo->isCapitalized( $title->getNamespace() ) ) {
+			return $namespace . $this->contentLanguage->ucfirst( $title->getText() );
 		} else {
 			return $namespace . $title->getText();
 		}
-	}
-
-	/**
-	 * @return Language
-	 */
-	private function getContLang(): Language {
-		return MediaWikiServices::getInstance()->getContentLanguage();
 	}
 
 	/**
@@ -249,7 +249,7 @@ class PagePort {
 		if ( $namespace === NS_MAIN ) {
 			return 'Main';
 		}
-		return MediaWikiServices::getInstance()->getNamespaceInfo()->getCanonicalName( $namespace );
+		return $this->namespaceInfo->getCanonicalName( $namespace );
 	}
 
 	/**
@@ -378,25 +378,6 @@ class PagePort {
 	// most of the code below is imported from PageForms
 
 	/**
-	 * Helper function - returns names of all the categories.
-	 * @return array
-	 */
-	public function getAllCategories(): array {
-		$categories = [];
-		$db = wfGetDB( DB_REPLICA );
-		$res = $db->select( 'category', 'cat_title', null, __METHOD__ );
-		if ( $db->numRows( $res ) > 0 ) {
-			// @codingStandardsIgnoreStart
-			while ( $row = $db->fetchRow( $res ) ) {
-				// @codingStandardsIgnoreEnd
-				$categories[] = $row['cat_title'];
-			}
-		}
-		$db->freeResult( $res );
-		return $categories;
-	}
-
-	/**
 	 * Get all the pages that belong to a category and all its
 	 * subcategories, down a certain number of levels - heavily based on
 	 * SMW's SMWInlineQuery::includeSubcategories().
@@ -414,7 +395,7 @@ class PagePort {
 		}
 		global $wgPageFormsMaxAutocompleteValues;
 
-		$db = wfGetDB( DB_REPLICA );
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
 		$top_category = str_replace( ' ', '_', $top_category );
 		$categories = [ $top_category ];
 		$checkcategories = [ $top_category ];
@@ -520,7 +501,7 @@ class PagePort {
 	private function getSQLConditionForAutocompleteInColumn( $column, $substring, $replaceSpaces = true ): string {
 		global $wgDBtype, $wgPageFormsAutocompleteOnAllChars;
 
-		$db = wfGetDB( DB_REPLICA );
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
 
 		// CONVERT() is also supported in PostgreSQL, but it doesn't
 		// seem to work the same way.
