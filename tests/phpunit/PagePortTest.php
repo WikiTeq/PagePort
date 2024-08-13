@@ -266,6 +266,7 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * @covers PagePort::import
 	 * @covers PagePort::getAllPages
+	 * @covers PagePort::delete
 	 */
 	public function testImport() {
 		$tempDir = $this->tempdir( 'pageprot_' );
@@ -294,6 +295,11 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 		$allPages = $this->pp->getAllPages();
 		foreach ( $pages as $p ) {
 			$this->assertContains( $p, $allPages );
+		}
+		$this->pp->delete( $tempDir );
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertNotContains( $p, $allPages );
 		}
 	}
 

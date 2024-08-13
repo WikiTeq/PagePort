@@ -57,19 +57,23 @@ class PagePort {
 	public function delete( string $root, string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
+		} else {
+			$user = RequestContext::getMain()->getUser();
 		}
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
 			$err = '';
-			$wp->doDeleteArticle(
+			$wp->doDeleteArticleReal(
 				'Deleted by PagePort',
+				$user,
 				false,
 				null,
-				null,
 				$err,
-				$user,
+				null,
+				[],
+				'delete',
 				true
 			);
 		}
