@@ -1,15 +1,13 @@
 <?php
 
-use EnricoStahn\JsonAssert\Assert as JsonAssert;
+use JsonSchema\Validator;
 
 /**
  * @coversDefaultClass PagePort
  * @group Database
  * @group extension-PagePort
  */
-class PagePortTest extends MediaWikiTestCase {
-
-	use JsonAssert;
+class PagePortTest extends MediaWikiIntegrationTestCase {
 
 	/** @var PagePort */
 	private $pp;
@@ -267,6 +265,8 @@ class PagePortTest extends MediaWikiTestCase {
 
 	/**
 	 * @covers PagePort::import
+	 * @covers PagePort::getAllPages
+	 * @covers PagePort::delete
 	 */
 	public function testImport() {
 		$tempDir = $this->tempdir( 'pageprot_' );
@@ -292,6 +292,15 @@ class PagePortTest extends MediaWikiTestCase {
 			$wp = WikiPage::factory( $title );
 			$this->assertTrue( strlen( $wp->getContent()->getWikitextForTransclusion() ) > 0 );
 		}
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertContains( $p, $allPages );
+		}
+		$this->pp->delete( $tempDir );
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertNotContains( $p, $allPages );
+		}
 	}
 
 	/**
@@ -310,6 +319,26 @@ class PagePortTest extends MediaWikiTestCase {
 		if ( is_dir( $tempfile ) ) {
 			return $tempfile;
 		}
+	}
+
+	/**
+	 * MediaWiki's composer merge plugin does not merge dev dependencies, so
+	 * rather than using the assertJsonMatchesSchema() from the
+	 * estahn/phpunit-json-assertions library, re-implement it based on
+	 * justinrainbow/json-schema
+	 */
+	private function assertJsonMatchesSchema( $json, string $schema ) {
+		$validator = new Validator();
+		$validator->validate(
+			$json,
+			(object)['$ref' => 'file://' . realpath( $schema)]
+		);
+		if ( $validator->isValid() ) {
+			$this->addToAssertionCount( 1 );
+			return;
+		}
+		// For a more informative error message
+		$this->assertSame( [], $validator->getErrors() );
 	}
 
 }
