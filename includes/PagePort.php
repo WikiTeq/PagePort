@@ -34,12 +34,14 @@ class PagePort {
 	public function import( string $root, string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
+		} else {
+			$user = RequestContext::getMain()->getUser();
 		}
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
-			$wp->doEditContent( new WikitextContent( $page['content'] ), 'Imported by PagePort', 0, false, $user );
+			$wp->doUserEditContent( new WikitextContent( $page['content'] ), $user, 'Imported by PagePort' );
 		}
 		return $pages;
 	}
@@ -450,7 +452,7 @@ class PagePort {
 				);
 				if ( $res ) {
 					// @codingStandardsIgnoreStart
-					while ( $res && $row = $db->fetchRow( $res ) ) {
+					while ( $res && $row = $res->fetchRow() ) {
 						// @codingStandardsIgnoreEnd
 						if ( !array_key_exists( 'page_title', $row ) ) {
 							continue;
@@ -489,7 +491,7 @@ class PagePort {
 							}
 						}
 					}
-					$db->freeResult( $res );
+					$res->free();
 				}
 			}
 			if ( count( $newcategories ) == 0 ) {
