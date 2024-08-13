@@ -152,10 +152,8 @@ class PagePort {
 		$dbr = wfGetDB( DB_REPLICA );
 		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
 		if ( $res ) {
-			// @codingStandardsIgnoreStart
-			while ( $res && $row = $res->fetchRow() ) {
-				// @codingStandardsIgnoreEnd
-				$cur_title = Title::makeTitleSafe( $row['page_namespace'], $row['page_title'] );
+			foreach ( $res as $row ) {
+				$cur_title = Title::makeTitleSafe( $row->page_namespace, $row->page_title );
 				if ( $cur_title === null ) {
 					continue;
 				}
@@ -262,7 +260,7 @@ class PagePort {
 	/**
 	 * Returns namespace constant name (NS_MAIN, NS_FILE, etc) by constant value
 	 *
-	 * @param string $value
+	 * @param string|int $value
 	 *
 	 * @return array|mixed|null
 	 */
@@ -325,15 +323,15 @@ class PagePort {
 			$filename = $root;
 		}
 		$json = [
-			'publisher' => $publisher ? $publisher : 'PagePort',
-			'author' => $author ? $author : 'PagePort',
+			'publisher' => $publisher ?: 'PagePort',
+			'author' => $author ?: 'PagePort',
 			'language' => $wgLanguageCode,
 			"url" => "https://github.com/$repo",
 			"packages" => [
 				$packageName => [
 					"globalID" => str_replace( ' ', '.', $packageName ),
 					"description" => $packageDesc,
-					"version" => $version ? $version : '0.1',
+					"version" => $version ?: '0.1',
 					"pages" => [],
 					"requiredExtensions" => []
 				]
@@ -365,12 +363,12 @@ class PagePort {
 			$jsonPages[] = $item;
 		}
 		$json['packages'][$packageName]['pages'] = $jsonPages;
-		if ( $dependencies !== null && is_array( $dependencies ) ) {
+		if ( is_array( $dependencies ) ) {
 			foreach ( $dependencies as $dependency ) {
 				$json['packages'][$packageName]['requiredPackages'][] = $dependency;
 			}
 		}
-		if ( $extensions !== null && is_array( $extensions ) ) {
+		if ( is_array( $extensions ) ) {
 			foreach ( $extensions as $extension ) {
 				$json['packages'][$packageName]['requiredExtensions'][] = $extension;
 			}

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "*" ]
 
+env:
+  EXTNAME: PagePort
+
 jobs:
   test:
     name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
@@ -30,3 +33,37 @@ jobs:
           mwbranch: ${{ matrix.mw }}
           extension: PagePort
           testgroup: extension-PagePort
+
+  security:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.1' ]
+        # Deliberately *not* testing against `master`
+        mediawiki: [ REL1_39 ]
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl, ast
+          coverage: none
+          tools: composer
+      - name: Setup MediaWiki
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki
+          ref: ${{ matrix.mediawiki }}
+      - name: Setup Extension
+        uses: actions/checkout@v3
+        with:
+          path: extensions/${{ env.EXTNAME }}
+      - name: Setup Composer
+        run: |
+          echo '{"extra":{"merge-plugin":{"include":["extensions/*/composer.json","skins/*/composer.json"]}}}' > composer.local.json
+          composer update
+          composer update
+      - name: Phan
+        run: ./vendor/bin/phan -d extensions/${{ env.EXTNAME }} --minimum-target-php-version=7.4 --long-progress-bar
