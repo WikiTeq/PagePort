@@ -135,7 +135,8 @@ class PagePortExportMaintenance extends Maintenance {
 					$files = glob( $root . '/**/*' );
 					// iterate files
 					foreach ( $files as $file ) {
-						if ( $file == '.' || $file == '..' ) { continue;
+						if ( $file == '.' || $file == '..' ) {
+							continue;
 						}
 						if ( is_file( $file ) ) {
 							// delete file

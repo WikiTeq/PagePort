@@ -189,12 +189,7 @@ class PagePort {
 	 * @return Language
 	 */
 	private function getContLang(): Language {
-		if ( method_exists( "MediaWiki\\MediaWikiServices", "getContentLanguage" ) ) {
-			return MediaWikiServices::getInstance()->getContentLanguage();
-		} else {
-			global $wgContLang;
-			return $wgContLang;
-		}
+		return MediaWikiServices::getInstance()->getContentLanguage();
 	}
 
 	/**
@@ -271,7 +266,7 @@ class PagePort {
 		$defines = get_defined_constants( true );
 		$constants = array_filter(
 			$defines['user'],
-			function ( $k ) {
+			static function ( $k ) {
 				return strpos( $k, 'NS_' ) !== false;
 			},
 			ARRAY_FILTER_USE_KEY

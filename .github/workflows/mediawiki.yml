@@ -10,6 +10,32 @@ env:
   EXTNAME: PagePort
 
 jobs:
+  style-php:
+    name: 'Code Style (PHP)'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, intl
+          coverage: none
+          tools: composer, phpcs, phplint
+
+      - uses: actions/checkout@v4
+
+      - name: Setup Composer
+        run: composer update
+        shell: bash
+
+      - name: Lint
+        run: phplint -w --exclude=vendor
+        shell: bash
+
+      - name: PHP Code Sniffer
+        run: vendor/bin/phpcs -sp --standard=.phpcs.xml .
+        shell: bash
+
   test:
     name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
     strategy:
