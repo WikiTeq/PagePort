@@ -46,6 +46,16 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 		$this->insertPage( 'Page8Test', 'Page8TestContents', NS_CUSTOM_SLASH );
 		$this->insertPage( 'Page9Test', 'Page9TestContents [[Category:TestRootCategory]]', NS_CATEGORY );
 		$this->insertPage( 'Page10Test', 'Page10TestContents', NS_PROJECT );
+		$this->insertPage(
+			'Common.css',
+			'body { overflow-y: scroll; }',
+			NS_MEDIAWIKI
+		);
+		$this->insertPage(
+			'Example.js',
+			'$(document).ready(() => console.log("Loaded"))',
+			NS_MEDIAWIKI
+		);
 		$this->pp = PagePort::getInstance();
 	}
 
@@ -83,6 +93,8 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			'CustomNamespace/With/Slashes:Page8Test',
 			'Project:Page10Test',
 			'RandomMetaName:Page10Test',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$result = $this->pp->export( $pages, "testRoot", false );
 		$this->assertCount( count( $pages ) - 1, $result, 'with $save=false an array is returned' );
@@ -141,6 +153,16 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			array_keys( $result )[9],
 			'file root for project/meta pages exported correctly'
 		);
+		$this->assertEquals(
+			'testRoot/MediaWiki/Common.css',
+			array_keys( $result )[10],
+			'no .mediawiki for CSS files'
+		);
+		$this->assertEquals(
+			'testRoot/MediaWiki/Example.js',
+			array_keys( $result )[11],
+			'no .mediawiki for JS files'
+		);
 	}
 
 	/**
@@ -161,6 +183,8 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			'CustomNamespace/With/Slashes:Page8Test',
 			'Project:Page10Test',
 			'RandomMetaName:Page10Test',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$result = $this->pp->exportJSON(
 			$pages,
@@ -277,7 +301,9 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			'Page4Test/SubPage1Test',
 			'Template:Page5Test',
 			'File:Page6Test',
-			'Page with spaces'
+			'Page with spaces',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$this->pp->export( $pages, $tempDir );
 		foreach ( $pages as $page ) {
@@ -290,7 +316,13 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			$title = Title::newFromText( $page );
 			$this->assertTrue( $title->exists() );
 			$wp = WikiPage::factory( $title );
-			$this->assertTrue( strlen( $wp->getContent()->getWikitextForTransclusion() ) > 0 );
+			$content = $wp->getContent();
+			$this->assertTrue( strlen( $content->getWikitextForTransclusion() ) > 0 );
+			if ( $page === 'MediaWiki:Common.css' ) {
+				$this->assertSame( CONTENT_MODEL_CSS, $content->getModel() );
+			} elseif ( $page === 'MediaWiki:Common.js' ) {
+				$this->assertSame( CONTENT_MODEL_JAVASCRIPT, $content->getModel() );
+			}
 		}
 		$allPages = $this->pp->getAllPages();
 		foreach ( $pages as $p ) {
