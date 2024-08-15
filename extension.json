@@ -1,36 +1,27 @@
 {
 	"name": "PagePort",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"author": [
-		"WikiWorks team"
+		"WikiWorks team",
+		"Daniel Scherzer"
 	],
 	"url": "https://www.mediawiki.org/wiki/Extension:PagePort",
 	"descriptionmsg": "pageport-desc",
 	"license-name": "MIT",
 	"requires": {
-		"MediaWiki": ">= 1.30.0"
+		"MediaWiki": ">= 1.39.0"
 	},
 	"type": "other",
 	"AutoloadClasses": {
-		"PagePortHooks": "PagePortHooks.php",
 		"PagePort": "includes/PagePort.php"
-	},
-	"config": {},
-	"ExtensionMessagesFiles": {
-		"PagePortAlias": "PagePort.i18n.alias.php"
-	},
-	"Hooks": {
-		"UnitTestsList": "PagePortHooks::onUnitTestsList"
 	},
 	"MessagesDirs": {
 		"PagePort": [
 			"i18n"
 		]
 	},
-	"ResourceModules": {},
-	"ResourceFileModulePaths": {
-		"localBasePath": "",
-		"remoteExtPath": "PagePort"
-	},
+	"ServiceWiringFiles": [
+		"includes/ServiceWiring.php"
+	],
 	"manifest_version": 2
 }

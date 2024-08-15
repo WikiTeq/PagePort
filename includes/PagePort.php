@@ -1,13 +1,10 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
+use Wikimedia\Rdbms\ILoadBalancer;
 
 class PagePort {
 
-	/**
-	 * @var PagePort
-	 */
-	public static $instance;
 	/**
 	 * @var array
 	 */
@@ -17,10 +14,21 @@ class PagePort {
 	 * @return PagePort
 	 */
 	public static function getInstance(): PagePort {
-		if ( self::$instance === null ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
+		return MediaWikiServices::getInstance()->getService( 'PagePort' );
+	}
+
+	private Language $contentLanguage;
+	private ILoadBalancer $loadBalancer;
+	private NamespaceInfo $namespaceInfo;
+
+	public function __construct(
+		Language $contentLanguage,
+		ILoadBalancer $loadBalancer,
+		NamespaceInfo $namespaceInfo
+	) {
+		$this->contentLanguage = $contentLanguage;
+		$this->loadBalancer = $loadBalancer;
+		$this->namespaceInfo = $namespaceInfo;
 	}
 
 	/**
@@ -34,12 +42,18 @@ class PagePort {
 	public function import( string $root, string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
+		} else {
+			$user = RequestContext::getMain()->getUser();
 		}
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
-			$wp->doEditContent( new WikitextContent( $page['content'] ), 'Imported by PagePort', 0, false, $user );
+			$wp->doUserEditContent(
+				ContentHandler::makeContent( $page['content'], $title ),
+				$user,
+				'Imported by PagePort'
+			);
 		}
 		return $pages;
 	}
@@ -55,19 +69,23 @@ class PagePort {
 	public function delete( string $root, string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
+		} else {
+			$user = RequestContext::getMain()->getUser();
 		}
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
 			$wp = WikiPage::factory( $title );
 			$err = '';
-			$wp->doDeleteArticle(
+			$wp->doDeleteArticleReal(
 				'Deleted by PagePort',
+				$user,
 				false,
 				null,
-				null,
 				$err,
-				$user,
+				null,
+				[],
+				'delete',
 				true
 			);
 		}
@@ -143,13 +161,11 @@ class PagePort {
 	 */
 	public function getAllPages(): array {
 		$pages = [];
-		$dbr = wfGetDB( DB_REPLICA );
+		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
 		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
 		if ( $res ) {
-			// @codingStandardsIgnoreStart
-			while ( $res && $row = $dbr->fetchRow( $res ) ) {
-				// @codingStandardsIgnoreEnd
-				$cur_title = Title::makeTitleSafe( $row['page_namespace'], $row['page_title'] );
+			foreach ( $res as $row ) {
+				$cur_title = Title::makeTitleSafe( $row->page_namespace, $row->page_title );
 				if ( $cur_title === null ) {
 					continue;
 				}
@@ -173,22 +189,10 @@ class PagePort {
 		if ( $namespace !== '' ) {
 			$namespace .= ':';
 		}
-		if ( MWNamespace::isCapitalized( $title->getNamespace() ) ) {
-			return $namespace . $this->getContLang()->ucfirst( $title->getText() );
+		if ( $this->namespaceInfo->isCapitalized( $title->getNamespace() ) ) {
+			return $namespace . $this->contentLanguage->ucfirst( $title->getText() );
 		} else {
 			return $namespace . $title->getText();
-		}
-	}
-
-	/**
-	 * @return Language
-	 */
-	private function getContLang(): Language {
-		if ( method_exists( "MediaWiki\\MediaWikiServices", "getContentLanguage" ) ) {
-			return MediaWikiServices::getInstance()->getContentLanguage();
-		} else {
-			global $wgContLang;
-			return $wgContLang;
 		}
 	}
 
@@ -218,14 +222,18 @@ class PagePort {
 			if ( strpos( $namespaceName, '/' ) !== false ) {
 				$namespaceName = str_replace( '/', '|', $namespaceName );
 			}
-			$content = WikiPage::factory( $title )->getContent()->getWikitextForTransclusion();
+			$contentObj = WikiPage::factory( $title )->getContent();
+			$content = $contentObj->getWikitextForTransclusion();
 			if ( $save && !file_exists( $root . '/' . $namespaceName ) ) {
 				mkdir( $root . '/' . $namespaceName );
 			}
 			if ( strpos( $filename, '/' ) !== false ) {
 				$filename = str_replace( '/', '|', $filename );
 			}
-			$targetFileName = $root . '/' . $namespaceName . '/' . $filename . '.mediawiki';
+			$targetFileName = $root . '/' . $namespaceName . '/' . $filename;
+			if ( $contentObj->getModel() === CONTENT_MODEL_WIKITEXT ) {
+				$targetFileName .= '.mediawiki';
+			}
 			if ( $save ) {
 				file_put_contents( $targetFileName, $content );
 			} else {
@@ -249,13 +257,13 @@ class PagePort {
 		if ( $namespace === NS_MAIN ) {
 			return 'Main';
 		}
-		return MediaWikiServices::getInstance()->getNamespaceInfo()->getCanonicalName( $namespace );
+		return $this->namespaceInfo->getCanonicalName( $namespace );
 	}
 
 	/**
 	 * Returns namespace constant name (NS_MAIN, NS_FILE, etc) by constant value
 	 *
-	 * @param string $value
+	 * @param string|int $value
 	 *
 	 * @return array|mixed|null
 	 */
@@ -266,7 +274,7 @@ class PagePort {
 		$defines = get_defined_constants( true );
 		$constants = array_filter(
 			$defines['user'],
-			function ( $k ) {
+			static function ( $k ) {
 				return strpos( $k, 'NS_' ) !== false;
 			},
 			ARRAY_FILTER_USE_KEY
@@ -318,15 +326,15 @@ class PagePort {
 			$filename = $root;
 		}
 		$json = [
-			'publisher' => $publisher ? $publisher : 'PagePort',
-			'author' => $author ? $author : 'PagePort',
+			'publisher' => $publisher ?: 'PagePort',
+			'author' => $author ?: 'PagePort',
 			'language' => $wgLanguageCode,
 			"url" => "https://github.com/$repo",
 			"packages" => [
 				$packageName => [
 					"globalID" => str_replace( ' ', '.', $packageName ),
 					"description" => $packageDesc,
-					"version" => $version ? $version : '0.1',
+					"version" => $version ?: '0.1',
 					"pages" => [],
 					"requiredExtensions" => []
 				]
@@ -358,12 +366,12 @@ class PagePort {
 			$jsonPages[] = $item;
 		}
 		$json['packages'][$packageName]['pages'] = $jsonPages;
-		if ( $dependencies !== null && is_array( $dependencies ) ) {
+		if ( is_array( $dependencies ) ) {
 			foreach ( $dependencies as $dependency ) {
 				$json['packages'][$packageName]['requiredPackages'][] = $dependency;
 			}
 		}
-		if ( $extensions !== null && is_array( $extensions ) ) {
+		if ( is_array( $extensions ) ) {
 			foreach ( $extensions as $extension ) {
 				$json['packages'][$packageName]['requiredExtensions'][] = $extension;
 			}
@@ -376,25 +384,6 @@ class PagePort {
 	}
 
 	// most of the code below is imported from PageForms
-
-	/**
-	 * Helper function - returns names of all the categories.
-	 * @return array
-	 */
-	public function getAllCategories(): array {
-		$categories = [];
-		$db = wfGetDB( DB_REPLICA );
-		$res = $db->select( 'category', 'cat_title', null, __METHOD__ );
-		if ( $db->numRows( $res ) > 0 ) {
-			// @codingStandardsIgnoreStart
-			while ( $row = $db->fetchRow( $res ) ) {
-				// @codingStandardsIgnoreEnd
-				$categories[] = $row['cat_title'];
-			}
-		}
-		$db->freeResult( $res );
-		return $categories;
-	}
 
 	/**
 	 * Get all the pages that belong to a category and all its
@@ -414,7 +403,7 @@ class PagePort {
 		}
 		global $wgPageFormsMaxAutocompleteValues;
 
-		$db = wfGetDB( DB_REPLICA );
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
 		$top_category = str_replace( ' ', '_', $top_category );
 		$categories = [ $top_category ];
 		$checkcategories = [ $top_category ];
@@ -450,7 +439,7 @@ class PagePort {
 				);
 				if ( $res ) {
 					// @codingStandardsIgnoreStart
-					while ( $res && $row = $db->fetchRow( $res ) ) {
+					while ( $res && $row = $res->fetchRow() ) {
 						// @codingStandardsIgnoreEnd
 						if ( !array_key_exists( 'page_title', $row ) ) {
 							continue;
@@ -489,7 +478,7 @@ class PagePort {
 							}
 						}
 					}
-					$db->freeResult( $res );
+					$res->free();
 				}
 			}
 			if ( count( $newcategories ) == 0 ) {
@@ -520,7 +509,7 @@ class PagePort {
 	private function getSQLConditionForAutocompleteInColumn( $column, $substring, $replaceSpaces = true ): string {
 		global $wgDBtype, $wgPageFormsAutocompleteOnAllChars;
 
-		$db = wfGetDB( DB_REPLICA );
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
 
 		// CONVERT() is also supported in PostgreSQL, but it doesn't
 		// seem to work the same way.

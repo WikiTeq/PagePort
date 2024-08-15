@@ -1,15 +1,13 @@
 <?php
 
-use EnricoStahn\JsonAssert\Assert as JsonAssert;
+use JsonSchema\Validator;
 
 /**
  * @coversDefaultClass PagePort
  * @group Database
  * @group extension-PagePort
  */
-class PagePortTest extends MediaWikiTestCase {
-
-	use JsonAssert;
+class PagePortTest extends MediaWikiIntegrationTestCase {
 
 	/** @var PagePort */
 	private $pp;
@@ -48,6 +46,16 @@ class PagePortTest extends MediaWikiTestCase {
 		$this->insertPage( 'Page8Test', 'Page8TestContents', NS_CUSTOM_SLASH );
 		$this->insertPage( 'Page9Test', 'Page9TestContents [[Category:TestRootCategory]]', NS_CATEGORY );
 		$this->insertPage( 'Page10Test', 'Page10TestContents', NS_PROJECT );
+		$this->insertPage(
+			'Common.css',
+			'body { overflow-y: scroll; }',
+			NS_MEDIAWIKI
+		);
+		$this->insertPage(
+			'Example.js',
+			'$(document).ready(() => console.log("Loaded"))',
+			NS_MEDIAWIKI
+		);
 		$this->pp = PagePort::getInstance();
 	}
 
@@ -85,6 +93,8 @@ class PagePortTest extends MediaWikiTestCase {
 			'CustomNamespace/With/Slashes:Page8Test',
 			'Project:Page10Test',
 			'RandomMetaName:Page10Test',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$result = $this->pp->export( $pages, "testRoot", false );
 		$this->assertCount( count( $pages ) - 1, $result, 'with $save=false an array is returned' );
@@ -143,6 +153,16 @@ class PagePortTest extends MediaWikiTestCase {
 			array_keys( $result )[9],
 			'file root for project/meta pages exported correctly'
 		);
+		$this->assertEquals(
+			'testRoot/MediaWiki/Common.css',
+			array_keys( $result )[10],
+			'no .mediawiki for CSS files'
+		);
+		$this->assertEquals(
+			'testRoot/MediaWiki/Example.js',
+			array_keys( $result )[11],
+			'no .mediawiki for JS files'
+		);
 	}
 
 	/**
@@ -163,6 +183,8 @@ class PagePortTest extends MediaWikiTestCase {
 			'CustomNamespace/With/Slashes:Page8Test',
 			'Project:Page10Test',
 			'RandomMetaName:Page10Test',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$result = $this->pp->exportJSON(
 			$pages,
@@ -267,6 +289,8 @@ class PagePortTest extends MediaWikiTestCase {
 
 	/**
 	 * @covers PagePort::import
+	 * @covers PagePort::getAllPages
+	 * @covers PagePort::delete
 	 */
 	public function testImport() {
 		$tempDir = $this->tempdir( 'pageprot_' );
@@ -277,7 +301,9 @@ class PagePortTest extends MediaWikiTestCase {
 			'Page4Test/SubPage1Test',
 			'Template:Page5Test',
 			'File:Page6Test',
-			'Page with spaces'
+			'Page with spaces',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
 		];
 		$this->pp->export( $pages, $tempDir );
 		foreach ( $pages as $page ) {
@@ -290,7 +316,22 @@ class PagePortTest extends MediaWikiTestCase {
 			$title = Title::newFromText( $page );
 			$this->assertTrue( $title->exists() );
 			$wp = WikiPage::factory( $title );
-			$this->assertTrue( strlen( $wp->getContent()->getWikitextForTransclusion() ) > 0 );
+			$content = $wp->getContent();
+			$this->assertTrue( strlen( $content->getWikitextForTransclusion() ) > 0 );
+			if ( $page === 'MediaWiki:Common.css' ) {
+				$this->assertSame( CONTENT_MODEL_CSS, $content->getModel() );
+			} elseif ( $page === 'MediaWiki:Common.js' ) {
+				$this->assertSame( CONTENT_MODEL_JAVASCRIPT, $content->getModel() );
+			}
+		}
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertContains( $p, $allPages );
+		}
+		$this->pp->delete( $tempDir );
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertNotContains( $p, $allPages );
 		}
 	}
 
@@ -310,6 +351,29 @@ class PagePortTest extends MediaWikiTestCase {
 		if ( is_dir( $tempfile ) ) {
 			return $tempfile;
 		}
+	}
+
+	/**
+	 * MediaWiki's composer merge plugin does not merge dev dependencies, so
+	 * rather than using the assertJsonMatchesSchema() from the
+	 * estahn/phpunit-json-assertions library, re-implement it based on
+	 * justinrainbow/json-schema
+	 *
+	 * @param mixed $json
+	 * @param string $schema
+	 */
+	private function assertJsonMatchesSchema( $json, string $schema ) {
+		$validator = new Validator();
+		$validator->validate(
+			$json,
+			(object)[ '$ref' => 'file://' . realpath( $schema ) ]
+		);
+		if ( $validator->isValid() ) {
+			$this->addToAssertionCount( 1 );
+			return;
+		}
+		// For a more informative error message
+		$this->assertSame( [], $validator->getErrors() );
 	}
 
 }

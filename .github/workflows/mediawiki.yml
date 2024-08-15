@@ -6,21 +6,44 @@ on:
   pull_request:
     branches: [ "*" ]
 
+env:
+  EXTNAME: PagePort
+
 jobs:
+  style-php:
+    name: 'Code Style (PHP)'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, intl
+          coverage: none
+          tools: composer, phpcs, phplint
+
+      - uses: actions/checkout@v4
+
+      - name: Setup Composer
+        run: composer update
+        shell: bash
+
+      - name: Lint
+        run: phplint -w --exclude=vendor
+        shell: bash
+
+      - name: PHP Code Sniffer
+        run: vendor/bin/phpcs -sp --standard=.phpcs.xml .
+        shell: bash
+
   test:
     name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
     strategy:
       fail-fast: false
       matrix:
         include:
-          - mw: 'REL1_35'
+          - mw: 'REL1_39'
             php: 7.4
-#          - mw: 'REL1_36'
-#            php: 7.4
-#          - mw: 'REL1_37'
-#            php: 7.4
-#          - mw: 'master'
-#            php: 7.4
     runs-on: ubuntu-latest
     steps:
       # check out the repository!
@@ -36,3 +59,37 @@ jobs:
           mwbranch: ${{ matrix.mw }}
           extension: PagePort
           testgroup: extension-PagePort
+
+  security:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.1' ]
+        # Deliberately *not* testing against `master`
+        mediawiki: [ REL1_39 ]
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl, ast
+          coverage: none
+          tools: composer
+      - name: Setup MediaWiki
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki
+          ref: ${{ matrix.mediawiki }}
+      - name: Setup Extension
+        uses: actions/checkout@v3
+        with:
+          path: extensions/${{ env.EXTNAME }}
+      - name: Setup Composer
+        run: |
+          echo '{"extra":{"merge-plugin":{"include":["extensions/*/composer.json","skins/*/composer.json"]}}}' > composer.local.json
+          composer update
+          composer update
+      - name: Phan
+        run: ./vendor/bin/phan -d extensions/${{ env.EXTNAME }} --minimum-target-php-version=7.4 --long-progress-bar
