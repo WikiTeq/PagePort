@@ -44,6 +44,8 @@ jobs:
         include:
           - mw: 'REL1_39'
             php: 7.4
+          - mw: 'REL1_42'
+            php: 8.1
     runs-on: ubuntu-latest
     steps:
       # check out the repository!
@@ -68,7 +70,10 @@ jobs:
       matrix:
         php: [ '7.4', '8.1' ]
         # Deliberately *not* testing against `master`
-        mediawiki: [ REL1_39 ]
+        mediawiki: [ REL1_39, REL1_42 ]
+        exclude:
+          - mediawiki: REL1_42
+            php: '7.4'
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

@@ -11,7 +11,8 @@ return [
 		return new PagePort(
 			$services->getContentLanguage(),
 			$services->getDBLoadBalancer(),
-			$services->getNamespaceInfo()
+			$services->getNamespaceInfo(),
+			$services->getWikiPageFactory()
 		);
 	},
 ];

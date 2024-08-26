@@ -1,6 +1,7 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Page\WikiPageFactory;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class PagePort {
@@ -20,15 +21,18 @@ class PagePort {
 	private Language $contentLanguage;
 	private ILoadBalancer $loadBalancer;
 	private NamespaceInfo $namespaceInfo;
+	private WikiPageFactory $wikiPageFactory;
 
 	public function __construct(
 		Language $contentLanguage,
 		ILoadBalancer $loadBalancer,
-		NamespaceInfo $namespaceInfo
+		NamespaceInfo $namespaceInfo,
+		WikiPageFactory $wikiPageFactory
 	) {
 		$this->contentLanguage = $contentLanguage;
 		$this->loadBalancer = $loadBalancer;
 		$this->namespaceInfo = $namespaceInfo;
+		$this->wikiPageFactory = $wikiPageFactory;
 	}
 
 	/**
@@ -36,8 +40,6 @@ class PagePort {
 	 * @param string|null $user
 	 *
 	 * @return array
-	 * @throws MWException
-	 * @throws Exception
 	 */
 	public function import( string $root, string $user = null ): array {
 		if ( $user !== null ) {
@@ -48,7 +50,7 @@ class PagePort {
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
-			$wp = WikiPage::factory( $title );
+			$wp = $this->wikiPageFactory->newFromTitle( $title );
 			$wp->doUserEditContent(
 				ContentHandler::makeContent( $page['content'], $title ),
 				$user,
@@ -63,8 +65,6 @@ class PagePort {
 	 * @param string|null $user
 	 *
 	 * @return array
-	 * @throws MWException
-	 * @throws Exception
 	 */
 	public function delete( string $root, string $user = null ): array {
 		if ( $user !== null ) {
@@ -75,7 +75,7 @@ class PagePort {
 		$pages = $this->getPages( $root );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page['fulltitle'] );
-			$wp = WikiPage::factory( $title );
+			$wp = $this->wikiPageFactory->newFromTitle( $title );
 			$err = '';
 			$wp->doDeleteArticleReal(
 				'Deleted by PagePort',
@@ -96,10 +96,13 @@ class PagePort {
 	 * @param string $root
 	 *
 	 * @return array
-	 * @throws Exception
 	 */
 	private function getPages( string $root ): array {
-		$this->checkDirectory( $root );
+		if ( !is_dir( $root ) ) {
+			throw new InvalidArgumentException(
+				'Source directory does not exist or you have no read permissions'
+			);
+		}
 		$list = scandir( $root );
 		$pages = [];
 		foreach ( $list as $l ) {
@@ -203,12 +206,12 @@ class PagePort {
 	 * @param bool $save save to file
 	 *
 	 * @return array|bool
-	 * @throws MWException
-	 * @throws Exception
 	 */
 	public function export( array $pages, string $root, bool $save = true ) {
 		if ( $save && ( !is_dir( $root ) || !is_writable( $root ) ) ) {
-			throw new Exception( 'Output directory does not exist or you have no write permissions' );
+			throw new InvalidArgumentException(
+				'Output directory does not exist or you have no write permissions'
+			);
 		}
 		$contents = [];
 		foreach ( $pages as $page ) {
@@ -222,7 +225,7 @@ class PagePort {
 			if ( strpos( $namespaceName, '/' ) !== false ) {
 				$namespaceName = str_replace( '/', '|', $namespaceName );
 			}
-			$contentObj = WikiPage::factory( $title )->getContent();
+			$contentObj = $this->wikiPageFactory->newFromTitle( $title )->getContent();
 			$content = $contentObj->getWikitextForTransclusion();
 			if ( $save && !file_exists( $root . '/' . $namespaceName ) ) {
 				mkdir( $root . '/' . $namespaceName );
@@ -558,17 +561,6 @@ class PagePort {
 			$newPages[$fixedKey] = $value;
 		}
 		return $newPages;
-	}
-
-	/**
-	 * @param string $root
-	 *
-	 * @throws Exception
-	 */
-	private function checkDirectory( string $root ) {
-		if ( !is_dir( $root ) ) {
-			throw new Exception( 'Source directory does not exist or you have no read permissions' );
-		}
 	}
 
 }
