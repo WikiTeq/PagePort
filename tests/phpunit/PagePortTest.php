@@ -1,6 +1,7 @@
 <?php
 
 use JsonSchema\Validator;
+use MediaWiki\Page\WikiPageFactory;
 
 /**
  * @coversDefaultClass PagePort
@@ -11,6 +12,8 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 
 	/** @var PagePort */
 	private $pp;
+
+	private WikiPageFactory $wikiPageFactory;
 
 	public static function setupBeforeClass(): void {
 		parent::setUpBeforeClass();
@@ -57,6 +60,7 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			NS_MEDIAWIKI
 		);
 		$this->pp = PagePort::getInstance();
+		$this->wikiPageFactory = $this->getServiceContainer()->getWikiPageFactory();
 	}
 
 	/**
@@ -308,14 +312,14 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 		$this->pp->export( $pages, $tempDir );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
-			$wp = WikiPage::factory( $title );
+			$wp = $this->wikiPageFactory->newFromTitle( $title );
 			$wp->doDeleteArticleReal( 'test', $this->getTestUser( 'sysop' )->getUser(), true );
 		}
 		$this->pp->import( $tempDir );
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$this->assertTrue( $title->exists() );
-			$wp = WikiPage::factory( $title );
+			$wp = $this->wikiPageFactory->newFromTitle( $title );
 			$content = $wp->getContent();
 			$this->assertTrue( strlen( $content->getWikitextForTransclusion() ) > 0 );
 			if ( $page === 'MediaWiki:Common.css' ) {
