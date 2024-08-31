@@ -170,6 +170,21 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
+	 * @covers PagePort::export
+	 */
+	public function testExportMissing(): void {
+		$pageName = 'PageThatDoesNotExist';
+		// Enforce that it does not exist
+		$this->getNonexistingTestPage( $pageName );
+
+		$this->expectException( InvalidArgumentException::class );
+		$this->expectExceptionMessage(
+			"The page '$pageName' does not exist, export is aborted."
+		);
+		$this->pp->export( [ $pageName ], "testRoot", false );
+	}
+
+	/**
 	 * @covers PagePort::exportJSON
 	 */
 	public function testExportPagesJSON(): void {
