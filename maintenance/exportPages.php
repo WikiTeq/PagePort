@@ -175,7 +175,7 @@ class PagePortExportMaintenance extends Maintenance {
 			$this->fatalError( $e->getMessage() );
 		}
 
-		$this->output( "Done!" );
+		$this->output( "Done!\n" );
 	}
 
 }
