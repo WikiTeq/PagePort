@@ -43,7 +43,7 @@ class PagePortImportPagesMaintenance extends Maintenance {
 			$this->output( $p['name'] . "\n" );
 		}
 
-		$this->output( "Done!" );
+		$this->output( "Done!\n" );
 	}
 
 }

@@ -216,6 +216,11 @@ class PagePort {
 		$contents = [];
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
+			if ( !$title->exists() ) {
+				throw new InvalidArgumentException(
+					"The page '" . $page . "' does not exist, export is aborted."
+				);
+			}
 			$filename = $title->getText();
 			$namespace = $title->getNamespace();
 			$namespaceName = $this->getNamespaceName( $namespace );
