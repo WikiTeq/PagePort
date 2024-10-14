@@ -131,13 +131,17 @@ class PagePort {
 				$namespace = basename( $dir );
 				$name = $l;
 
-				if ( strpos( $namespace, '|' ) !== false ) {
-					$namespace = str_replace( '|', '/', $namespace );
-				}
+				$namespace = str_replace( '#', '/', $namespace );
+				# Legacy handling for exports that used | rather than #, which
+				# was changed for windows support in SEL-1609
+				$namespace = str_replace( '|', '/', $namespace );
+
 				$name = str_replace( '.mediawiki', '', $name );
-				if ( strpos( $name, '|' ) !== false ) {
-					$name = str_replace( '|', '/', $name );
-				}
+				$name = str_replace( '#', '/', $name );
+				# Legacy handling for exports that used | rather than #, which
+				# was changed for windows support in SEL-1609
+				$name = str_replace( '|', '/', $name );
+
 				$fulltitle = $namespace . ':' . $name;
 				// Clean up the Main namespace from the title
 				$fulltitle = str_replace( 'Main:', '', $fulltitle );
@@ -228,7 +232,9 @@ class PagePort {
 				continue;
 			}
 			if ( strpos( $namespaceName, '/' ) !== false ) {
-				$namespaceName = str_replace( '/', '|', $namespaceName );
+				// Used to be replaced with a |, now # for windows support,
+				// SEL-1609
+				$namespaceName = str_replace( '/', '#', $namespaceName );
 			}
 			$contentObj = $this->wikiPageFactory->newFromTitle( $title )->getContent();
 			$content = $contentObj->getWikitextForTransclusion();
@@ -236,7 +242,9 @@ class PagePort {
 				mkdir( $root . '/' . $namespaceName );
 			}
 			if ( strpos( $filename, '/' ) !== false ) {
-				$filename = str_replace( '/', '|', $filename );
+				// Used to be replaced with a |, now # for windows support,
+				// SEL-1609
+				$filename = str_replace( '/', '#', $filename );
 			}
 			$targetFileName = $root . '/' . $namespaceName . '/' . $filename;
 			if ( $contentObj->getModel() === CONTENT_MODEL_WIKITEXT ) {
@@ -342,7 +350,7 @@ class PagePort {
 				$packageName => [
 					"globalID" => str_replace( ' ', '.', $packageName ),
 					"description" => $packageDesc,
-					"version" => $version ?: '0.1',
+					"version" => $version ?: '0.2',
 					"pages" => [],
 					"requiredExtensions" => []
 				]
@@ -352,7 +360,7 @@ class PagePort {
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$name = $title->getText();
-			$escapedName = str_replace( '/', '|', $name );
+			$escapedName = str_replace( '/', '#', $name );
 			$namespace = $this->getNamespaceByValue( $title->getNamespace() );
 			// PagePort can't handle deprecated NS_IMAGE
 			if ( $namespace === "NS_IMAGE" ) {

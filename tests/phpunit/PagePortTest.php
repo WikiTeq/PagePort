@@ -122,8 +122,9 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			$result[array_keys( $result )[2]],
 			'page contents with wiki templates are exported correctly'
 		);
+		// Subpages use # instead of | for windows support, SEL-1609
 		$this->assertEquals(
-			'testRoot/Main/Page4Test|SubPage1Test.mediawiki',
+			'testRoot/Main/Page4Test#SubPage1Test.mediawiki',
 			array_keys( $result )[3],
 			'file root for subpages is calculated correctly'
 		);
@@ -147,8 +148,9 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			array_keys( $result )[7],
 			'file root for pages with extra namespace is calculated correctly'
 		);
+		// Subpages use # instead of | for windows support, SEL-1609
 		$this->assertEquals(
-			'testRoot/CustomNamespace|With|Slashes/Page8Test.mediawiki',
+			'testRoot/CustomNamespace#With#Slashes/Page8Test.mediawiki',
 			array_keys( $result )[8],
 			'file root for pages with extra namespace with slashes is calculated correctly'
 		);
@@ -309,9 +311,9 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * @covers PagePort::import
 	 * @covers PagePort::getAllPages
-	 * @covers PagePort::delete
+	 * @dataProvider provideTestImport
 	 */
-	public function testImport() {
+	public function testImport( callable $callback = null ) {
 		$tempDir = $this->tempdir( 'pageprot_' );
 		$pages = [
 			'Page1Test',
@@ -320,11 +322,15 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 			'Page4Test/SubPage1Test',
 			'Template:Page5Test',
 			'File:Page6Test',
+			'CustomNamespace/With/Slashes:Page8Test',
 			'Page with spaces',
 			'MediaWiki:Common.css',
 			'MediaWiki:Example.js',
 		];
 		$this->pp->export( $pages, $tempDir );
+		if ( $callback !== null ) {
+			$callback( $pages, $tempDir );
+		}
 		foreach ( $pages as $page ) {
 			$title = Title::newFromText( $page );
 			$wp = $this->wikiPageFactory->newFromTitle( $title );
@@ -347,10 +353,58 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 		foreach ( $pages as $p ) {
 			$this->assertContains( $p, $allPages );
 		}
+	}
+
+	public static function provideTestImport() {
+		yield 'New export' => [ null ];
+		// Checking that packages exported before the change of `/` being
+		// encoded with `#` rather than `|` (for windows support) can still
+		// be imported. Since the export logic no longer creates files with |,
+		// manually rename the exported files
+		$cb = static function ( $pages, $tempDir ) {
+			// Only pages with / (encoded as #) are
+			// - Page4Test/SubPage1Test (main namespace)
+			// - CustomNamespace/With/Slashes:Page8Test (custom namespace 4002)
+			rename(
+				"$tempDir/Main/Page4Test#SubPage1Test.mediawiki",
+				"$tempDir/Main/Page4Test|SubPage1Test.mediawiki"
+			);
+			rename(
+				"$tempDir/CustomNamespace#With#Slashes",
+				"$tempDir/CustomNamespace|With|Slashes"
+			);
+		};
+		yield 'Old export' => [ $cb ];
+	}
+
+	/**
+	 * @covers PagePort::delete
+	 */
+	public function testDelete() {
+		$tempDir = $this->tempdir( 'pageprot_' );
+		$pages = [
+			'Page1Test',
+			'Page2Test',
+			'Page3Test',
+			'Page4Test/SubPage1Test',
+			'Template:Page5Test',
+			'File:Page6Test',
+			'Page with spaces',
+			'MediaWiki:Common.css',
+			'MediaWiki:Example.js',
+		];
+		// Export to have a copy of the list of pages in a directory, because
+		// delete() is given a directory of the pages that should be deleted
+		// from the wiki
+		$this->pp->export( $pages, $tempDir );
+		$allPages = $this->pp->getAllPages();
+		foreach ( $pages as $p ) {
+			$this->assertContains( $p, $allPages, "Page $p is included in getAllPages()" );
+		}
 		$this->pp->delete( $tempDir );
 		$allPages = $this->pp->getAllPages();
 		foreach ( $pages as $p ) {
-			$this->assertNotContains( $p, $allPages );
+			$this->assertNotContains( $p, $allPages, "Page $p was deleted" );
 		}
 	}
 
