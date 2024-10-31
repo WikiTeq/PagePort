@@ -169,7 +169,12 @@ class PagePort {
 	public function getAllPages(): array {
 		$pages = [];
 		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
-		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ] );
+		$res = $dbr->select(
+			'page',
+			[ 'page_title', 'page_namespace' ],
+			'',
+			__METHOD__
+		);
 		if ( $res ) {
 			foreach ( $res as $row ) {
 				$cur_title = Title::makeTitleSafe( $row->page_namespace, $row->page_title );
