@@ -41,7 +41,7 @@ class PagePort {
 	 *
 	 * @return array
 	 */
-	public function import( string $root, string $user = null ): array {
+	public function import( string $root, ?string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
 		} else {
@@ -66,7 +66,7 @@ class PagePort {
 	 *
 	 * @return array
 	 */
-	public function delete( string $root, string $user = null ): array {
+	public function delete( string $root, ?string $user = null ): array {
 		if ( $user !== null ) {
 			$user = User::newFromName( $user );
 		} else {
@@ -326,14 +326,14 @@ class PagePort {
 	public function exportJSON(
 		array $pages,
 		string $root,
-		string $packageName = null,
+		?string $packageName = null,
 		string $packageDesc = '',
-		string $repo = null,
-		string $version = null,
-		string $author = null,
-		string $publisher = null,
-		array $dependencies = null,
-		array $extensions = null,
+		?string $repo = null,
+		?string $version = null,
+		?string $author = null,
+		?string $publisher = null,
+		?array $dependencies = null,
+		?array $extensions = null,
 		bool $save = true
 	) {
 		global $wgLanguageCode;
