@@ -313,7 +313,7 @@ class PagePortTest extends MediaWikiIntegrationTestCase {
 	 * @covers PagePort::getAllPages
 	 * @dataProvider provideTestImport
 	 */
-	public function testImport( callable $callback = null ) {
+	public function testImport( ?callable $callback = null ) {
 		$tempDir = $this->tempdir( 'pageprot_' );
 		$pages = [
 			'Page1Test',
